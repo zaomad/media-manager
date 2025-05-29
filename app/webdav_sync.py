@@ -5,7 +5,7 @@ import shutil
 import zipfile
 import tempfile
 from datetime import datetime
-from webdavclient3 import Client
+from webdav3.client import Client
 from app.config import get_config, update_config
 
 # 数据目录路径
