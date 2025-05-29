@@ -8,7 +8,7 @@ import os
 from werkzeug.utils import secure_filename
 import time
 from app.models import save_books
-from app.utils import get_common_genres, get_image_url
+from app.utils import get_common_genres, get_image_url, format_date
 
 # 配置文件上传
 UPLOAD_FOLDER = 'static/uploads'
@@ -32,6 +32,11 @@ def inject_now():
 @app.context_processor
 def inject_image_url():
     return {'get_image_url': get_image_url}
+
+# 添加全局上下文处理器，为所有模板添加format_date函数
+@app.context_processor
+def inject_format_date():
+    return {'format_date': format_date}
 
 # 页面路由
 @app.route('/')
@@ -650,4 +655,214 @@ def private_artists():
 
 @app.route('/private/collections')
 def private_collections():
-    return render_template('private_collections.html') 
+    return render_template('private_collections.html')
+
+# 添加WebDAV相关导入
+import io
+import logging
+import sys
+import threading
+from app.config import get_config, update_config
+from app.webdav_sync import sync_data, test_connection, get_available_backups
+
+# 配置日志
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# 自定义过滤器，将时间戳转换为ISO格式
+@app.template_filter('timestamp_to_iso')
+def timestamp_to_iso(timestamp):
+    if timestamp:
+        return datetime.fromtimestamp(timestamp).isoformat()
+    return None
+
+# 设置页面
+@app.route('/settings')
+def settings():
+    # 获取配置
+    config = get_config()
+    
+    # 获取数据目录和配置目录
+    data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
+    config_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config')
+    
+    # 统计数据
+    stats = {
+        'books': len(get_all_books()),
+        'movies': len(get_all_movies()),
+        'music': len(get_all_music())
+    }
+    
+    return render_template('settings.html', 
+                          config=config, 
+                          data_dir=data_dir, 
+                          config_dir=config_dir,
+                          stats=stats)
+
+# WebDAV设置保存
+@app.route('/settings/webdav/save', methods=['POST'])
+def save_webdav_settings():
+    # 获取表单数据
+    webdav_url = request.form.get('webdav_url', '')
+    webdav_username = request.form.get('webdav_username', '')
+    webdav_password = request.form.get('webdav_password', '')
+    webdav_path = request.form.get('webdav_path', '/media-manager/')
+    sync_interval = request.form.get('sync_interval', '3600')
+    
+    # 确保路径以/开头和结尾
+    if not webdav_path.startswith('/'):
+        webdav_path = '/' + webdav_path
+    if not webdav_path.endswith('/'):
+        webdav_path += '/'
+    
+    # 确保同步间隔是整数
+    try:
+        sync_interval = int(sync_interval)
+        if sync_interval < 60:
+            sync_interval = 60  # 最小1分钟
+    except ValueError:
+        sync_interval = 3600  # 默认1小时
+    
+    # 更新配置
+    update_config('webdav.url', webdav_url)
+    update_config('webdav.username', webdav_username)
+    update_config('webdav.password', webdav_password)
+    update_config('webdav.remote_path', webdav_path)
+    update_config('webdav.sync_interval', sync_interval)
+    
+    flash('WebDAV设置已保存', 'success')
+    return redirect(url_for('settings'))
+
+# 切换WebDAV启用状态
+@app.route('/settings/webdav/toggle', methods=['POST'])
+def toggle_webdav():
+    try:
+        data = request.get_json()
+        enabled = data.get('enabled', False)
+        
+        # 更新配置
+        update_config('webdav.enabled', enabled)
+        
+        return jsonify({'success': True, 'enabled': enabled})
+    except Exception as e:
+        logger.error(f"切换WebDAV状态失败: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+# 测试WebDAV连接
+@app.route('/settings/webdav/test', methods=['POST'])
+def test_webdav_connection():
+    try:
+        data = request.get_json()
+        
+        # 临时更新配置用于测试
+        temp_config = get_config()
+        temp_config['webdav']['url'] = data.get('webdav_url', '')
+        temp_config['webdav']['username'] = data.get('webdav_username', '')
+        temp_config['webdav']['password'] = data.get('webdav_password', '')
+        temp_config['webdav']['remote_path'] = data.get('webdav_path', '/media-manager/')
+        temp_config['webdav']['enabled'] = True
+        
+        # 测试连接
+        success, message = test_connection()
+        
+        return jsonify({'success': success, 'message': message})
+    except Exception as e:
+        logger.error(f"测试WebDAV连接失败: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+# 捕获同步日志
+class LogCapture:
+    def __init__(self):
+        self.log_capture_string = io.StringIO()
+        self.log_handler = logging.StreamHandler(self.log_capture_string)
+        self.log_handler.setLevel(logging.INFO)
+        self.log_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        
+        # 添加处理器
+        logger = logging.getLogger()
+        logger.addHandler(self.log_handler)
+    
+    def get_log(self):
+        log_contents = self.log_capture_string.getvalue()
+        # 重置日志缓冲区
+        self.log_capture_string.truncate(0)
+        self.log_capture_string.seek(0)
+        return log_contents
+    
+    def close(self):
+        # 移除处理器
+        logger = logging.getLogger()
+        logger.removeHandler(self.log_handler)
+        self.log_capture_string.close()
+
+# 获取可用备份列表
+@app.route('/settings/webdav/backups', methods=['GET'])
+def get_webdav_backups():
+    try:
+        backups = get_available_backups()
+        return jsonify({'success': True, 'backups': backups})
+    except Exception as e:
+        logger.error(f"获取备份列表失败: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+# 仅上传同步
+@app.route('/settings/webdav/upload', methods=['POST'])
+def upload_webdav_now():
+    try:
+        # 捕获日志
+        log_capture = LogCapture()
+        
+        # 执行上传同步
+        success = sync_data(force=True, direction='upload')
+        
+        # 获取日志
+        log = log_capture.get_log()
+        log_capture.close()
+        
+        if success:
+            return jsonify({'success': True, 'message': '上传成功', 'log': log})
+        else:
+            return jsonify({'success': False, 'message': '上传失败，请检查日志', 'log': log})
+    except Exception as e:
+        logger.error(f"上传失败: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+# 仅下载同步
+@app.route('/settings/webdav/download', methods=['POST'])
+def download_webdav_now():
+    try:
+        # 获取请求数据
+        data = request.get_json() or {}
+        backup_path = data.get('backup_path')
+        
+        # 捕获日志
+        log_capture = LogCapture()
+        
+        # 执行下载同步
+        success = sync_data(force=True, direction='download', backup_path=backup_path)
+        
+        # 获取日志
+        log = log_capture.get_log()
+        log_capture.close()
+        
+        if success:
+            return jsonify({'success': True, 'message': '下载成功', 'log': log})
+        else:
+            return jsonify({'success': False, 'message': '下载失败，请检查日志', 'log': log})
+    except Exception as e:
+        logger.error(f"下载失败: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+# 添加导航栏链接
+@app.context_processor
+def inject_nav_links():
+    return {
+        'nav_links': [
+            {'url': url_for('index'), 'text': '首页', 'icon': 'bi-house'},
+            {'url': url_for('books'), 'text': '书籍', 'icon': 'bi-book'},
+            {'url': url_for('movies'), 'text': '电影', 'icon': 'bi-film'},
+            {'url': url_for('music'), 'text': '音乐', 'icon': 'bi-music-note-beamed'},
+            {'url': url_for('bookshelf'), 'text': '书架', 'icon': 'bi-bookshelf'},
+            {'url': url_for('settings'), 'text': '设置', 'icon': 'bi-gear'}
+        ]
+    } 

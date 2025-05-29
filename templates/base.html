@@ -35,31 +35,13 @@
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav">
+                        {% for link in nav_links %}
                         <li class="nav-item">
-                            <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{{ url_for('index') }}">
-                                <i class="bi bi-house-door"></i> 首页
+                            <a class="nav-link {% if link.url == request.path %}active{% endif %}" href="{{ link.url }}">
+                                <i class="bi {{ link.icon }}"></i> {{ link.text }}
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if '/books' in request.path %}active{% endif %}" href="{{ url_for('books') }}">
-                                <i class="bi bi-book"></i> 书籍
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if '/bookshelf' in request.path %}active{% endif %}" href="{{ url_for('bookshelf') }}">
-                                <i class="bi bi-bookshelf"></i> 书架
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if '/movies' in request.path %}active{% endif %}" href="{{ url_for('movies') }}">
-                                <i class="bi bi-film"></i> 电影
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if '/music' in request.path %}active{% endif %}" href="{{ url_for('music') }}">
-                                <i class="bi bi-music-note-beamed"></i> 音乐
-                            </a>
-                        </li>
+                        {% endfor %}
                     </ul>
                     <ul class="navbar-nav ms-auto">
                         <!-- 模式切换按钮 -->

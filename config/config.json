@@ -1,0 +1,11 @@
+{
+    "webdav": {
+        "enabled": true,
+        "url": "https://dav.jianguoyun.com/dav/",
+        "username": "3304314632@qq.com",
+        "password": "af79p9e9xn8fq27g",
+        "remote_path": "/media-manager/",
+        "sync_interval": 86400,
+        "last_sync": 1748521708.353237
+    }
+}
