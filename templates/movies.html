@@ -128,7 +128,7 @@
                     data-rating="{{ movie.rating }}">
                     <div class="card h-100">
                         {% if movie.poster_url %}
-                        <img src="{{ movie.poster_url }}" class="card-img-top" alt="{{ movie.title }}" style="height: 300px; object-fit: cover;">
+                        <img src="{{ get_image_url(movie.poster_url, 'grid') }}" class="card-img-top" alt="{{ movie.title }}" style="height: 300px; object-fit: cover;">
                         {% else %}
                         <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 300px;">
                             <i class="bi bi-film" style="font-size: 3rem;"></i>
@@ -203,7 +203,7 @@
                      data-rating="{{ movie.rating }}">
                     <div class="media-row">
                         {% if movie.poster_url %}
-                        <img src="{{ movie.poster_url }}" class="media-thumbnail" alt="{{ movie.title }}">
+                        <img src="{{ get_image_url(movie.poster_url, 'list') }}" class="media-thumbnail" alt="{{ movie.title }}">
                         {% else %}
                         <div class="media-thumbnail bg-light d-flex align-items-center justify-content-center">
                             <i class="bi bi-film"></i>
@@ -284,7 +284,7 @@
                             data-rating="{{ movie.rating }}">
                             <td>
                                 {% if movie.poster_url %}
-                                <img src="{{ movie.poster_url }}" class="media-thumbnail" alt="{{ movie.title }}">
+                                <img src="{{ get_image_url(movie.poster_url, 'table') }}" class="media-thumbnail" alt="{{ movie.title }}">
                                 {% else %}
                                 <div class="media-thumbnail bg-light d-flex align-items-center justify-content-center">
                                     <i class="bi bi-film"></i>

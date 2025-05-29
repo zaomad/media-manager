@@ -237,7 +237,7 @@
                     data-rating="{{ music.rating }}">
                     <div class="card h-100">
                         {% if music.cover_url %}
-                        <img src="{{ music.cover_url }}" class="card-img-top" alt="{{ music.album }}" style="height: 300px; object-fit: cover;">
+                        <img src="{{ get_image_url(music.cover_url, 'grid') }}" class="card-img-top" alt="{{ music.album }}" style="height: 300px; object-fit: cover;">
                         {% else %}
                         <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 300px;">
                             <i class="bi bi-music-note-beamed" style="font-size: 3rem;"></i>
@@ -311,7 +311,7 @@
                      data-rating="{{ music.rating }}">
                     <div class="media-row">
                         {% if music.cover_url %}
-                        <img src="{{ music.cover_url }}" class="media-thumbnail" alt="{{ music.album }}">
+                        <img src="{{ get_image_url(music.cover_url, 'list') }}" class="media-thumbnail" alt="{{ music.album }}">
                         {% else %}
                         <div class="media-thumbnail bg-light d-flex align-items-center justify-content-center">
                             <i class="bi bi-music-note-beamed"></i>
@@ -390,7 +390,7 @@
                             data-rating="{{ music.rating }}">
                             <td>
                                 {% if music.cover_url %}
-                                <img src="{{ music.cover_url }}" class="media-thumbnail" alt="{{ music.album }}">
+                                <img src="{{ get_image_url(music.cover_url, 'table') }}" class="media-thumbnail" alt="{{ music.album }}">
                                 {% else %}
                                 <div class="media-thumbnail bg-light d-flex align-items-center justify-content-center">
                                     <i class="bi bi-music-note-beamed"></i>

@@ -52,11 +52,11 @@
     <div class="row">
         <div class="col-md-4 mb-4">
             {% if item_type == 'book' and item.cover_url %}
-                <img src="{{ item.cover_url }}" alt="{{ item.title }}" class="img-fluid rounded shadow cover-image">
+                <img src="{{ get_image_url(item.cover_url, 'detail') }}" alt="{{ item.title }}" class="img-fluid rounded shadow cover-image">
             {% elif item_type == 'movie' and item.poster_url %}
-                <img src="{{ item.poster_url }}" alt="{{ item.title }}" class="img-fluid rounded shadow cover-image">
+                <img src="{{ get_image_url(item.poster_url, 'detail') }}" alt="{{ item.title }}" class="img-fluid rounded shadow cover-image">
             {% elif item_type == 'music' and item.cover_url %}
-                <img src="{{ item.cover_url }}" alt="{{ item.album }}" class="img-fluid rounded shadow cover-image">
+                <img src="{{ get_image_url(item.cover_url, 'detail') }}" alt="{{ item.album }}" class="img-fluid rounded shadow cover-image">
             {% else %}
                 <div class="bg-light rounded d-flex align-items-center justify-content-center shadow" style="height: 400px;">
                     {% if item_type == 'book' %}

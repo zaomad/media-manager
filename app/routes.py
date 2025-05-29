@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify, redirect, url_for, flash
+from flask import render_template, request, jsonify, redirect, url_for, flash, send_from_directory, abort
 from app import app
 from app.models import (get_all_books, get_book, add_book, update_book, delete_book,
                        get_all_movies, get_movie, add_movie, update_movie, delete_movie,
@@ -8,6 +8,7 @@ import os
 from werkzeug.utils import secure_filename
 import time
 from app.models import save_books
+from app.utils import get_common_genres, get_image_url
 
 # 配置文件上传
 UPLOAD_FOLDER = 'static/uploads'
@@ -26,6 +27,11 @@ def allowed_file(filename):
 @app.context_processor
 def inject_now():
     return {'now': datetime.now()}
+
+# 添加全局上下文处理器，为所有模板添加get_image_url函数
+@app.context_processor
+def inject_image_url():
+    return {'get_image_url': get_image_url}
 
 # 页面路由
 @app.route('/')
@@ -76,8 +82,11 @@ def add_book_route():
     if request.method == 'POST':
         # Get the rating value from the form
         rating_value = request.form.get('rating', '')
-        # Convert to float to handle half-star ratings
-        rating = float(rating_value) if rating_value else 0
+        # 确保评分值是浮点数
+        try:
+            rating = float(rating_value)
+        except (ValueError, TypeError):
+            rating = 0.0
         
         # 处理分类标签（包括复选框和自定义输入）
         genre_tags = request.form.getlist('genre_tags')
@@ -121,6 +130,9 @@ def add_book_route():
                 file.save(file_path)
                 # 更新书籍封面URL
                 book_data['cover_url'] = f"/uploads/{unique_filename}"
+        elif not book_data.get('cover_url'):
+            # 如果没有上传封面且没有提供URL，确保cover_url为空字符串而不是None
+            book_data['cover_url'] = ''
         
         book_id = add_book(book_data)
         flash('图书已成功添加！', 'success')
@@ -206,7 +218,11 @@ def edit_book(book_id):
         
         status = request.form.get('status')
         rating_value = request.form.get('rating', '')
-        rating = float(rating_value) if rating_value else 0
+        # 确保评分值是浮点数
+        try:
+            rating = float(rating_value)
+        except (ValueError, TypeError):
+            rating = 0.0
         description = request.form.get('description', '')
         notes = request.form.get('notes', '')
         is_owned = request.form.get('is_owned') == 'on'
@@ -251,6 +267,9 @@ def edit_book(book_id):
                     file.save(file_path)
                     # 更新书籍封面URL
                     book['cover_url'] = f"/uploads/{unique_filename}"
+            elif request.form.get('cover_url') != old_cover_url:
+                # 如果URL已更改，更新封面URL
+                book['cover_url'] = request.form.get('cover_url', '')
             
             # 保存到文件
             save_books(books)

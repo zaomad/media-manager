@@ -105,28 +105,32 @@
                                 <div class="mb-3">
                                     <label for="cover" class="form-label">上传封面</label>
                                     <input type="file" class="form-control" id="cover" name="cover">
-                                    {% if book and book.cover_url and book.cover_url.startswith('/uploads/') %}
+                                    {% if book and book.cover_url %}
                                         <div class="mt-2">
-                                            <img src="{{ book.cover_url }}" alt="当前封面" style="max-height: 100px;">
-                                            <p class="text-muted">当前上传的封面</p>
+                                            <img src="{{ get_image_url(book.cover_url, 'detail') }}" alt="当前封面" style="max-height: 100px;">
+                                            <p class="text-muted">当前封面</p>
                                         </div>
                                     {% endif %}
                                 </div>
                                 <div class="mb-3">
                                     <label for="rating" class="form-label">评分</label>
                                     <div class="rating-container">
+                                        <!-- 调试信息 -->
+                                        {% if book %}
+                                            <div class="text-muted mb-2">当前评分值: {{ book.rating }} (类型: {{ book.rating.__class__.__name__ }})</div>
+                                        {% endif %}
                                         <select class="form-select" id="rating" name="rating" style="width: 150px;">
-                                            <option value="0" {% if book and book.rating == '0' %}selected{% endif %}>☆☆☆☆☆ (0分)</option>
-                                            <option value="0.5" {% if book and book.rating == '0.5' %}selected{% endif %}>½☆☆☆☆ (0.5分)</option>
-                                            <option value="1" {% if book and book.rating == '1' %}selected{% endif %}>★☆☆☆☆ (1分)</option>
-                                            <option value="1.5" {% if book and book.rating == '1.5' %}selected{% endif %}>★½☆☆☆ (1.5分)</option>
-                                            <option value="2" {% if book and book.rating == '2' %}selected{% endif %}>★★☆☆☆ (2分)</option>
-                                            <option value="2.5" {% if book and book.rating == '2.5' %}selected{% endif %}>★★½☆☆ (2.5分)</option>
-                                            <option value="3" {% if book and book.rating == '3' %}selected{% endif %}>★★★☆☆ (3分)</option>
-                                            <option value="3.5" {% if book and book.rating == '3.5' %}selected{% endif %}>★★★½☆ (3.5分)</option>
-                                            <option value="4" {% if book and book.rating == '4' %}selected{% endif %}>★★★★☆ (4分)</option>
-                                            <option value="4.5" {% if book and book.rating == '4.5' %}selected{% endif %}>★★★★½ (4.5分)</option>
-                                            <option value="5" {% if book and book.rating == '5' %}selected{% endif %}>★★★★★ (5分)</option>
+                                            <option value="0" {% if book and book.rating|float == 0 %}selected{% endif %}>☆☆☆☆☆ (0分)</option>
+                                            <option value="0.5" {% if book and book.rating|float == 0.5 %}selected{% endif %}>½☆☆☆☆ (0.5分)</option>
+                                            <option value="1" {% if book and book.rating|float == 1 %}selected{% endif %}>★☆☆☆☆ (1分)</option>
+                                            <option value="1.5" {% if book and book.rating|float == 1.5 %}selected{% endif %}>★½☆☆☆ (1.5分)</option>
+                                            <option value="2" {% if book and book.rating|float == 2 %}selected{% endif %}>★★☆☆☆ (2分)</option>
+                                            <option value="2.5" {% if book and book.rating|float == 2.5 %}selected{% endif %}>★★½☆☆ (2.5分)</option>
+                                            <option value="3" {% if book and book.rating|float == 3 %}selected{% endif %}>★★★☆☆ (3分)</option>
+                                            <option value="3.5" {% if book and book.rating|float == 3.5 %}selected{% endif %}>★★★½☆ (3.5分)</option>
+                                            <option value="4" {% if book and book.rating|float == 4 %}selected{% endif %}>★★★★☆ (4分)</option>
+                                            <option value="4.5" {% if book and book.rating|float == 4.5 %}selected{% endif %}>★★★★½ (4.5分)</option>
+                                            <option value="5" {% if book and book.rating|float == 5 %}selected{% endif %}>★★★★★ (5分)</option>
                                         </select>
                                     </div>
                                 </div>
