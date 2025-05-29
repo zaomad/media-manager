@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if item_type == 'book' %}
+        {{ item.title }} - 书籍详情
+    {% elif item_type == 'movie' %}
+        {{ item.title }} - 电影详情
+    {% elif item_type == 'music' %}
+        {{ item.album }} - 音乐详情
+    {% endif %}
+{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+<style>
+    .cover-image {
+        max-height: 400px;
+        object-fit: contain;
+    }
+    .rating {
+        color: #ffc107;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">首页</a></li>
+                    {% if item_type == 'book' %}
+                        <li class="breadcrumb-item"><a href="{{ url_for('books') }}">书籍</a></li>
+                    {% elif item_type == 'movie' %}
+                        <li class="breadcrumb-item"><a href="{{ url_for('movies') }}">电影</a></li>
+                    {% elif item_type == 'music' %}
+                        <li class="breadcrumb-item"><a href="{{ url_for('music') }}">音乐</a></li>
+                    {% endif %}
+                    <li class="breadcrumb-item active">
+                        {% if item_type == 'book' or item_type == 'movie' %}
+                            {{ item.title }}
+                        {% elif item_type == 'music' %}
+                            {{ item.album }}
+                        {% endif %}
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            {% if item_type == 'book' and item.cover_url %}
+                <img src="{{ item.cover_url }}" alt="{{ item.title }}" class="img-fluid rounded shadow cover-image">
+            {% elif item_type == 'movie' and item.poster_url %}
+                <img src="{{ item.poster_url }}" alt="{{ item.title }}" class="img-fluid rounded shadow cover-image">
+            {% elif item_type == 'music' and item.cover_url %}
+                <img src="{{ item.cover_url }}" alt="{{ item.album }}" class="img-fluid rounded shadow cover-image">
+            {% else %}
+                <div class="bg-light rounded d-flex align-items-center justify-content-center shadow" style="height: 400px;">
+                    {% if item_type == 'book' %}
+                        <i class="bi bi-book" style="font-size: 5rem;"></i>
+                    {% elif item_type == 'movie' %}
+                        <i class="bi bi-film" style="font-size: 5rem;"></i>
+                    {% elif item_type == 'music' %}
+                        <i class="bi bi-music-note-beamed" style="font-size: 5rem;"></i>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-8">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <h1 class="mb-0">
+                    {% if item_type == 'book' or item_type == 'movie' %}
+                        {{ item.title }}
+                    {% elif item_type == 'music' %}
+                        {{ item.album }}
+                    {% endif %}
+                </h1>
+                <div>
+                    {% if item_type == 'book' %}
+                        <a href="{{ url_for('edit_book', book_id=item.id) }}" class="btn btn-outline-primary me-2">
+                            <i class="bi bi-pencil"></i> 编辑
+                        </a>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            <i class="bi bi-trash"></i> 删除
+                        </button>
+                    {% elif item_type == 'movie' %}
+                        <a href="{{ url_for('edit_movie_route', movie_id=item.id) }}" class="btn btn-outline-primary me-2">
+                            <i class="bi bi-pencil"></i> 编辑
+                        </a>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            <i class="bi bi-trash"></i> 删除
+                        </button>
+                    {% elif item_type == 'music' %}
+                        <a href="{{ url_for('edit_music_route', music_id=item.id) }}" class="btn btn-outline-primary me-2">
+                            <i class="bi bi-pencil"></i> 编辑
+                        </a>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            <i class="bi bi-trash"></i> 删除
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mb-3">
+                {% if item.rating %}
+                    <div class="rating mb-2">
+                        {% for i in range(1, 6) %}
+                            {% if i <= item.rating|int %}
+                                <i class="bi bi-star-fill"></i>
+                            {% elif i <= item.rating|float|int + 0.5 %}
+                                <i class="bi bi-star-half"></i>
+                            {% else %}
+                                <i class="bi bi-star"></i>
+                            {% endif %}
+                        {% endfor %}
+                        <span class="ms-2 text-muted">{{ item.rating }} / 5</span>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">基本信息</h5>
+                    <table class="table table-borderless">
+                        <tbody>
+                            {% if item_type == 'book' %}
+                                <tr>
+                                    <th scope="row" style="width: 120px;">作者</th>
+                                    <td>{{ item.author }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">出版年份</th>
+                                    <td>{{ item.year }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">类型</th>
+                                    <td>{{ item.genre }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">状态</th>
+                                    <td>
+                                        <span class="badge {% if item.status == 'read' %}bg-success{% elif item.status == 'reading' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                            {% if item.status == 'read' %}已读
+                                            {% elif item.status == 'reading' %}在读
+                                            {% else %}未读
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% elif item_type == 'movie' %}
+                                <tr>
+                                    <th scope="row" style="width: 120px;">导演</th>
+                                    <td>{{ item.director }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">主演</th>
+                                    <td>{{ item.cast }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">发行年份</th>
+                                    <td>{{ item.year }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">类型</th>
+                                    <td>{{ item.genre }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">状态</th>
+                                    <td>
+                                        <span class="badge {% if item.status == 'watched' %}bg-success{% elif item.status == 'watching' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                            {% if item.status == 'watched' %}已看
+                                            {% elif item.status == 'watching' %}在看
+                                            {% else %}未看
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% elif item_type == 'music' %}
+                                <tr>
+                                    <th scope="row" style="width: 120px;">艺术家</th>
+                                    <td>{{ item.artist }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">发行年份</th>
+                                    <td>{{ item.year }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">类型</th>
+                                    <td>{{ item.genre }}</td>
+                                </tr>
+                            {% endif %}
+                            <tr>
+                                <th scope="row">添加时间</th>
+                                <td>{{ item.created_at }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">更新时间</th>
+                                <td>{{ item.updated_at }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {% if item.description %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">简介</h5>
+                    <p class="card-text">{{ item.description }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if item.notes %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">笔记/评论</h5>
+                    <p class="card-text">{{ item.notes }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">确认删除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                确定要删除"{% if item_type == 'book' or item_type == 'movie' %}{{ item.title }}{% elif item_type == 'music' %}{{ item.album }}{% endif %}"吗？此操作不可撤销。
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form method="POST" action="
+                    {% if item_type == 'book' %}
+                        {{ url_for('delete_book_route', book_id=item.id) }}
+                    {% elif item_type == 'movie' %}
+                        {{ url_for('delete_movie_route', movie_id=item.id) }}
+                    {% elif item_type == 'music' %}
+                        {{ url_for('delete_music_route', music_id=item.id) }}
+                    {% endif %}
+                ">
+                    <button type="submit" class="btn btn-danger">删除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

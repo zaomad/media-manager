@@ -1,0 +1,54 @@
+<div class="filter-container">
+    <div class="filter-wrapper">
+        <div class="search-box">
+            <input type="text" class="search-input" placeholder="搜索音乐...">
+        </div>
+        <div class="filter-options">
+            {% for option in filter_options %}
+            <a href="{{ url_for('music', filter=option) }}" 
+               class="filter-option {% if current_filter == option %}active{% endif %}">
+                {{ option }}
+            </a>
+            {% endfor %}
+        </div>
+        <div class="checkbox-filters">
+            {% for tag in tags %}
+            <label class="checkbox-label">
+                <input type="checkbox" class="filter-checkbox" value="{{ tag }}"> {{ tag }}
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+</div> 
+
+<!-- 显示音乐条目，以专辑为主要信息 -->
+{% for music in musics %}
+<div class="music-item">
+    <div class="music-cover">
+        {% if music.cover_url %}
+        <img src="{{ music.cover_url }}" alt="{{ music.album }}">
+        {% else %}
+        <div class="no-cover">无封面</div>
+        {% endif %}
+    </div>
+    <div class="music-info">
+        <h3>{{ music.album }}</h3>
+        <p>艺术家: {{ music.artist }}</p>
+        <p>年份: {{ music.year }}</p>
+        <p>类型: {{ music.genre }}</p>
+        <div class="music-rating">
+            {% for i in range(music.rating|int) %}
+            <span class="star filled">★</span>
+            {% endfor %}
+            {% for i in range(5 - music.rating|int) %}
+            <span class="star">☆</span>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="music-actions">
+        <a href="{{ url_for('music_detail', music_id=music.id) }}" class="btn btn-info btn-sm">详情</a>
+        <a href="{{ url_for('edit_music_route', music_id=music.id) }}" class="btn btn-primary btn-sm">编辑</a>
+        <button class="btn btn-danger btn-sm delete-btn" data-id="{{ music.id }}" data-type="music">删除</button>
+    </div>
+</div>
+{% endfor %} 

@@ -1,0 +1,948 @@
+{% extends "base.html" %}
+
+{% block title %}图书管理 - 书影音管理{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+<style>
+    th.sortable {
+        cursor: pointer;
+    }
+    th.sortable:hover {
+        background-color: #f8f9fa;
+    }
+    th.sortable[data-direction="asc"] i {
+        transform: rotate(0deg);
+    }
+    th.sortable[data-direction="desc"] i {
+        transform: rotate(180deg);
+    }
+    /* 分类标签过滤器样式 */
+    .genre-filter-container {
+        margin-bottom: 15px;
+        position: relative;
+    }
+    .genre-filter-title {
+        font-weight: bold;
+        margin-bottom: 8px;
+    }
+    .genre-dropdown {
+        position: relative;
+    }
+    .genre-input-container {
+        position: relative;
+    }
+    .genre-input {
+        min-height: 38px;
+        height: auto;
+        padding: 0.375rem 40px 0.375rem 0.75rem;
+        cursor: pointer;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 5px;
+    }
+    .genre-input-placeholder {
+        color: #6c757d;
+    }
+    .genre-search-icon {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        z-index: 5;
+    }
+    .genre-dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        max-height: 300px;
+        overflow-y: auto;
+        background-color: white;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        z-index: 1000;
+        padding: 0.5rem;
+        display: none;
+    }
+    .genre-dropdown-menu.show {
+        display: block;
+    }
+    .genre-tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .genre-tag-item, .author-tag-item {
+        margin-bottom: 5px;
+    }
+    .genre-checkbox, .author-checkbox {
+        display: none;
+    }
+    .genre-label, .author-label {
+        display: inline-block;
+        padding: 5px 10px;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.9rem;
+    }
+    .genre-checkbox:checked + .genre-label, .author-checkbox:checked + .author-label {
+        background-color: #0d6efd;
+        color: white;
+        border-color: #0d6efd;
+    }
+    .selected-genre-tag {
+        display: inline-flex;
+        align-items: center;
+        background-color: #e9ecef;
+        border-radius: 16px;
+        padding: 2px 8px;
+        margin-right: 5px;
+        margin-bottom: 5px;
+        font-size: 0.85rem;
+    }
+    .selected-genre-tag .remove-genre {
+        margin-left: 5px;
+        cursor: pointer;
+        color: #6c757d;
+    }
+    .selected-genre-tag .remove-genre:hover {
+        color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>我的图书</h1>
+    <a href="{{ url_for('add_book_route') }}" class="btn btn-success">
+        <i class="bi bi-plus-lg"></i> 添加图书
+    </a>
+</div>
+
+<div id="books-app">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="搜索图书..." v-model="searchQuery">
+                <button class="btn btn-outline-secondary" type="button" @click="search">
+                    <i class="bi bi-search"></i> 搜索
+                </button>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <select class="form-select" v-model="filterStatus">
+                <option value="">所有状态</option>
+                <option value="unread">未读</option>
+                <option value="reading">在读</option>
+                <option value="read">已读</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 分类/作者过滤器 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="genre-filter-container">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="filter-type-toggle btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-primary active" id="genreFilterTypeBtn" data-filter-type="genre">
+                            按分类筛选
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="authorFilterTypeBtn" data-filter-type="author">
+                            按作者筛选
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="clearFilterBtn">清除筛选</button>
+                </div>
+                <div class="genre-dropdown">
+                    <div class="genre-input-container">
+                        <div class="form-control genre-input" id="genreFilter">
+                            <span class="genre-input-placeholder" id="filterPlaceholder">选择或搜索分类标签...</span>
+                        </div>
+                        <div class="genre-search-icon" id="genreSearchBtn">
+                            <i class="bi bi-funnel-fill"></i>
+                        </div>
+                    </div>
+                    <div class="genre-dropdown-menu" id="genreDropdownMenu">
+                        <div class="mb-2">
+                            <input type="text" class="form-control" id="genreSearchInput" placeholder="搜索...">
+                        </div>
+                        <!-- 分类筛选 -->
+                        <div class="genre-tags-container" id="genreTagsContainer">
+                            <div class="row row-cols-3 g-2 w-100">
+                                {% for genre in genres %}
+                                <div class="col genre-tag-item filter-genre-item">
+                                    <input type="checkbox" class="genre-checkbox" id="genre_{{ loop.index }}" value="{{ genre }}">
+                                    <label class="genre-label w-100 text-center" for="genre_{{ loop.index }}">{{ genre }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <!-- 作者筛选 -->
+                        <div class="author-tags-container" id="authorTagsContainer" style="display: none;">
+                            <div class="row row-cols-3 g-2 w-100">
+                                {% for author in authors %}
+                                <div class="col author-tag-item filter-author-item">
+                                    <input type="checkbox" class="author-checkbox" id="author_{{ loop.index }}" value="{{ author }}">
+                                    <label class="author-label w-100 text-center" for="author_{{ loop.index }}">{{ author }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 视图切换按钮 -->
+    <div class="view-toggle d-flex justify-content-end mb-3">
+        <div class="btn-group" role="group" aria-label="视图切换">
+            <button type="button" class="btn btn-outline-secondary active" data-view="grid">
+                <i class="bi bi-grid-3x3-gap"></i> 卡片视图
+            </button>
+            <button type="button" class="btn btn-outline-secondary" data-view="list">
+                <i class="bi bi-list-ul"></i> 列表视图
+            </button>
+            <button type="button" class="btn btn-outline-secondary" data-view="table">
+                <i class="bi bi-table"></i> 表格视图
+            </button>
+        </div>
+    </div>
+
+    <!-- 媒体容器 -->
+    <div class="media-container grid-view">
+        <!-- 卡片视图 -->
+        <div class="view-content grid-content">
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                {% for book in books %}
+                <div class="col book-item" 
+                    data-title="{{ book.title|lower }}" 
+                    data-author="{{ book.author|lower }}" 
+                    data-status="{{ book.status }}"
+                    data-year="{{ book.year }}"
+                    data-rating="{{ book.rating }}">
+                    <div class="card h-100">
+                        {% if book.cover_url %}
+                        <img src="{{ book.cover_url }}" class="card-img-top" alt="{{ book.title }}" style="height: 300px; object-fit: cover;">
+                        {% else %}
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 300px;">
+                            <i class="bi bi-book" style="font-size: 3rem;"></i>
+                        </div>
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ book.title }}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">{{ book.author }}</h6>
+                            <p class="card-text">
+                                {% if book.year %}<small class="text-muted">{{ book.year }}</small>{% endif %}
+                                {% if book.genre %}<small class="text-muted">{{ book.genre }}</small>{% endif %}
+                            </p>
+                            {% if book.rating %}
+                            <div class="mb-2">
+                                {% for i in range(1, book.rating|int + 1) %}
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                {% endfor %}
+                                {% if book.rating|float % 1 >= 0.5 %}
+                                    <i class="bi bi-star-half text-warning"></i>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge {% if book.status == 'read' %}bg-success{% elif book.status == 'reading' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                    {% if book.status == 'read' %}已读
+                                    {% elif book.status == 'reading' %}在读
+                                    {% else %}未读
+                                    {% endif %}
+                                </span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary details-btn" data-id="{{ book.id }}">
+                                        <i class="bi bi-info-circle"></i> 详情
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <button class="btn btn-sm btn-outline-danger delete-book-btn" data-id="{{ book.id }}" style="display: none;">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                                <a href="{{ url_for('edit_book', book_id=book.id) }}" class="btn btn-sm btn-outline-secondary" style="display: none;">
+                                    <i class="bi bi-pencil"></i> 编辑
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12">
+                    <div class="alert alert-info" role="alert">
+                        您还没有添加任何图书。<a href="{{ url_for('add_book_route') }}" class="alert-link">添加一本书</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 列表视图 -->
+        <div class="view-content list-content" style="display: none;">
+            {% if books %}
+                {% for book in books %}
+                <div class="media-item book-item"
+                     data-title="{{ book.title|lower }}" 
+                     data-author="{{ book.author|lower }}" 
+                     data-status="{{ book.status }}"
+                     data-year="{{ book.year }}"
+                     data-rating="{{ book.rating }}">
+                    <div class="media-row">
+                        {% if book.cover_url %}
+                        <img src="{{ book.cover_url }}" class="media-thumbnail" alt="{{ book.title }}">
+                        {% else %}
+                        <div class="media-thumbnail bg-light d-flex align-items-center justify-content-center">
+                            <i class="bi bi-book"></i>
+                        </div>
+                        {% endif %}
+                        <div class="media-content">
+                            <div class="media-title">{{ book.title }}</div>
+                            <div class="media-info">
+                                <span>{{ book.author }}</span>
+                                {% if book.year %} · <span>{{ book.year }}</span>{% endif %}
+                                {% if book.genre %} · <span>{{ book.genre }}</span>{% endif %}
+                                <span class="badge ms-2 {% if book.status == 'read' %}bg-success{% elif book.status == 'reading' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                    {% if book.status == 'read' %}已读
+                                    {% elif book.status == 'reading' %}在读
+                                    {% else %}未读
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="media-rating">
+                            {% if book.rating %}
+                                {% for i in range(1, book.rating|int + 1) %}
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                {% endfor %}
+                                {% if book.rating|float % 1 >= 0.5 %}
+                                    <i class="bi bi-star-half text-warning"></i>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        <div class="ms-3">
+                            <button class="btn btn-sm btn-outline-primary details-btn me-1" data-id="{{ book.id }}">
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger delete-book-btn me-1" data-id="{{ book.id }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            <a href="{{ url_for('edit_book', book_id=book.id) }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info" role="alert">
+                    您还没有添加任何图书。<a href="{{ url_for('add_book_route') }}" class="alert-link">添加一本书</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- 表格视图 -->
+        <div class="view-content table-content" style="display: none;">
+            {% if books %}
+            <div class="table-responsive table-view">
+                <table class="table table-hover table-sortable">
+                    <thead>
+                        <tr>
+                            <th scope="col" style="width: 60px;">#</th>
+                            <th scope="col" class="sortable" data-sort="title">标题 <i class="bi bi-arrow-down-short"></i></th>
+                            <th scope="col" class="sortable" data-sort="author">作者 <i class="bi bi-arrow-down-short"></i></th>
+                            <th scope="col" class="sortable" data-sort="year">年份 <i class="bi bi-arrow-down-short"></i></th>
+                            <th scope="col">类型</th>
+                            <th scope="col">状态</th>
+                            <th scope="col" class="sortable" data-sort="rating">评分 <i class="bi bi-arrow-down-short"></i></th>
+                            <th scope="col" style="width: 100px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for book in books %}
+                        <tr class="book-item"
+                            data-title="{{ book.title|lower }}" 
+                            data-author="{{ book.author|lower }}" 
+                            data-status="{{ book.status }}"
+                            data-year="{{ book.year }}"
+                            data-rating="{{ book.rating }}">
+                            <td>
+                                {% if book.cover_url %}
+                                <img src="{{ book.cover_url }}" class="media-thumbnail" alt="{{ book.title }}">
+                                {% else %}
+                                <div class="media-thumbnail bg-light d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-book"></i>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td>{{ book.title }}</td>
+                            <td>{{ book.author }}</td>
+                            <td>{{ book.year }}</td>
+                            <td>{{ book.genre }}</td>
+                            <td>
+                                <span class="badge {% if book.status == 'read' %}bg-success{% elif book.status == 'reading' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                    {% if book.status == 'read' %}已读
+                                    {% elif book.status == 'reading' %}在读
+                                    {% else %}未读
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                {% if book.rating %}
+                                    {% for i in range(1, book.rating|int + 1) %}
+                                        <i class="bi bi-star-fill text-warning"></i>
+                                    {% endfor %}
+                                    {% if book.rating|float % 1 >= 0.5 %}
+                                        <i class="bi bi-star-half text-warning"></i>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary details-btn" data-id="{{ book.id }}">
+                                        <i class="bi bi-info-circle"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-book-btn" data-id="{{ book.id }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <a href="{{ url_for('edit_book', book_id=book.id) }}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+                <div class="alert alert-info" role="alert">
+                    您还没有添加任何图书。<a href="{{ url_for('add_book_route') }}" class="alert-link">添加一本书</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    new Vue({
+        el: '#books-app',
+        data: {
+            searchQuery: '',
+            filterStatus: ''
+        },
+        methods: {
+            search: function() {
+                const query = this.searchQuery.toLowerCase();
+                const status = this.filterStatus;
+                
+                document.querySelectorAll('.book-item').forEach(item => {
+                    const title = item.dataset.title;
+                    const author = item.dataset.author;
+                    const itemStatus = item.dataset.status;
+                    
+                    const matchesSearch = title.includes(query) || author.includes(query);
+                    const matchesStatus = !status || itemStatus === status;
+                    
+                    if (matchesSearch && matchesStatus) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+        },
+        watch: {
+            filterStatus: function() {
+                this.search();
+            }
+        },
+        mounted: function() {
+            // 从本地存储加载视图偏好
+            const preferredView = localStorage.getItem('preferredView') || 'grid';
+            
+            // 更新视图切换按钮状态
+            document.querySelectorAll('.view-toggle .btn').forEach(btn => {
+                if (btn.getAttribute('data-view') === preferredView) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+    });
+    
+    // 将书籍数据转换为JavaScript变量
+    var booksData = [];
+    try {
+        booksData = JSON.parse('{{ books|tojson|safe }}');
+    } catch (e) {
+        console.error('Error parsing books data:', e);
+        booksData = [];
+    }
+    
+    // 初始化分类/作者筛选器
+    function initializeFilters() {
+        const genreFilter = document.getElementById('genreFilter');
+        const filterPlaceholder = document.getElementById('filterPlaceholder');
+        const genreDropdown = document.getElementById('genreDropdownMenu');
+        const genreSearchBtn = document.getElementById('genreSearchBtn');
+        const genreSearchInput = document.getElementById('genreSearchInput');
+        const clearFilterBtn = document.getElementById('clearFilterBtn');
+        const genreCheckboxes = document.querySelectorAll('.genre-checkbox');
+        const authorCheckboxes = document.querySelectorAll('.author-checkbox');
+        
+        // 筛选类型切换按钮
+        const genreFilterTypeBtn = document.getElementById('genreFilterTypeBtn');
+        const authorFilterTypeBtn = document.getElementById('authorFilterTypeBtn');
+        const genreTagsContainer = document.getElementById('genreTagsContainer');
+        const authorTagsContainer = document.getElementById('authorTagsContainer');
+
+        let selectedGenres = [];
+        let selectedAuthors = [];
+        let currentFilterType = 'genre'; // 默认为分类筛选
+        
+        // 显示下拉框
+        function showDropdown() {
+            genreDropdown.classList.add('show');
+            
+            // 点击外部关闭下拉框
+            document.addEventListener('click', handleOutsideClick);
+        }
+        
+        // 隐藏下拉框
+        function hideDropdown() {
+            genreDropdown.classList.remove('show');
+            document.removeEventListener('click', handleOutsideClick);
+        }
+        
+        // 处理外部点击
+        function handleOutsideClick(e) {
+            const isDropdownClick = genreDropdown.contains(e.target) || 
+                                    genreFilter.contains(e.target) || 
+                                    genreSearchBtn.contains(e.target);
+            
+            if (!isDropdownClick) {
+                hideDropdown();
+            }
+        }
+        
+        // 更新已选分类显示
+        function updateSelectedGenres() {
+            // 清除所有现有标签和占位符
+            const existingTags = genreFilter.querySelectorAll('.selected-genre-tag');
+            existingTags.forEach(tag => tag.remove());
+            
+            selectedGenres = [];
+            
+            genreCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    const genreValue = checkbox.value;
+                    selectedGenres.push(genreValue);
+                    
+                    // 创建标签元素
+                    const tag = document.createElement('span');
+                    tag.className = 'selected-genre-tag';
+                    tag.innerHTML = `
+                        ${genreValue}
+                        <span class="remove-genre" data-genre="${genreValue}">×</span>
+                    `;
+                    
+                    // 在占位符之前插入标签
+                    genreFilter.insertBefore(tag, filterPlaceholder);
+                }
+            });
+            
+            // 切换占位符的可见性
+            if (selectedGenres.length > 0) {
+                filterPlaceholder.style.display = 'none';
+            } else {
+                filterPlaceholder.style.display = '';
+            }
+            
+            // 为移除按钮添加事件
+            document.querySelectorAll('.remove-genre').forEach(btn => {
+                if (btn.dataset.genre) {  // 确保这是一个分类标签
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const genre = this.dataset.genre;
+                        
+                        // 取消对应的复选框
+                        document.querySelector(`.genre-checkbox[value="${genre}"]`).checked = false;
+                        updateSelectedGenres();
+                        
+                        // 实时筛选
+                        filterBooks();
+                    });
+                }
+            });
+            
+            // 实时筛选
+            filterBooks();
+        }
+
+        // 更新已选作者显示
+        function updateSelectedAuthors() {
+            // 清除所有现有标签和占位符
+            const existingTags = genreFilter.querySelectorAll('.selected-genre-tag');
+            existingTags.forEach(tag => tag.remove());
+            
+            selectedAuthors = [];
+            
+            authorCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    const authorValue = checkbox.value;
+                    selectedAuthors.push(authorValue);
+                    
+                    // 创建标签元素
+                    const tag = document.createElement('span');
+                    tag.className = 'selected-genre-tag';
+                    tag.innerHTML = `
+                        ${authorValue}
+                        <span class="remove-genre" data-author="${authorValue}">×</span>
+                    `;
+                    
+                    // 在占位符之前插入标签
+                    genreFilter.insertBefore(tag, filterPlaceholder);
+                }
+            });
+            
+            // 切换占位符的可见性
+            if (selectedAuthors.length > 0) {
+                filterPlaceholder.style.display = 'none';
+            } else {
+                filterPlaceholder.style.display = '';
+            }
+            
+            // 为移除按钮添加事件
+            document.querySelectorAll('.remove-genre').forEach(btn => {
+                if (btn.dataset.author) {  // 确保这是一个作者标签
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const author = this.dataset.author;
+                        
+                        // 取消对应的复选框
+                        document.querySelector(`.author-checkbox[value="${author}"]`).checked = false;
+                        updateSelectedAuthors();
+                        
+                        // 实时筛选
+                        filterBooks();
+                    });
+                }
+            });
+            
+            // 实时筛选
+            filterBooks();
+        }
+        
+        // 筛选标签
+        function filterTags(query) {
+            const normalizedQuery = query.toLowerCase();
+            
+            if (currentFilterType === 'genre') {
+                document.querySelectorAll('.filter-genre-item').forEach(item => {
+                    const label = item.querySelector('.genre-label');
+                    const text = label.textContent.toLowerCase();
+                    
+                    if (text.includes(normalizedQuery)) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            } else {
+                document.querySelectorAll('.filter-author-item').forEach(item => {
+                    const label = item.querySelector('.author-label');
+                    const text = label.textContent.toLowerCase();
+                    
+                    if (text.includes(normalizedQuery)) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+        }
+        
+        // 清除所有选择
+        function clearFilterSelection() {
+            if (currentFilterType === 'genre') {
+                genreCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                updateSelectedGenres();
+            } else {
+                authorCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                updateSelectedAuthors();
+            }
+        }
+
+        // 切换筛选类型
+        function switchFilterType(type) {
+            currentFilterType = type;
+            
+            if (type === 'genre') {
+                // 切换到分类筛选
+                genreFilterTypeBtn.classList.add('active');
+                authorFilterTypeBtn.classList.remove('active');
+                genreTagsContainer.style.display = '';
+                authorTagsContainer.style.display = 'none';
+                filterPlaceholder.textContent = '选择或搜索分类标签...';
+                
+                // 显示分类选择
+                updateSelectedGenres();
+            } else {
+                // 切换到作者筛选
+                genreFilterTypeBtn.classList.remove('active');
+                authorFilterTypeBtn.classList.add('active');
+                genreTagsContainer.style.display = 'none';
+                authorTagsContainer.style.display = '';
+                filterPlaceholder.textContent = '选择或搜索作者...';
+                
+                // 显示作者选择
+                updateSelectedAuthors();
+            }
+            
+            // 清空搜索框
+            genreSearchInput.value = '';
+        }
+        
+        // 筛选图书
+        function filterBooks() {
+            const booksApp = document.getElementById('books-app').__vue__;
+            const searchQuery = booksApp.searchQuery.toLowerCase();
+            const statusFilter = booksApp.filterStatus;
+            
+            // 获取选中的分类和作者
+            const selectedGenres = Array.from(document.querySelectorAll('.genre-checkbox:checked'))
+                .map(checkbox => checkbox.value);
+            
+            const selectedAuthors = Array.from(document.querySelectorAll('.author-checkbox:checked'))
+                .map(checkbox => checkbox.value);
+            
+            const allBooks = document.querySelectorAll('.book-item');
+            
+            allBooks.forEach(book => {
+                const title = book.dataset.title.toLowerCase();
+                const author = book.dataset.author.toLowerCase();
+                const status = book.dataset.status;
+                const genres = book.dataset.genre ? book.dataset.genre.split(',').map(g => g.trim().toLowerCase()) : [];
+                
+                // 搜索匹配 (标题或作者)
+                const matchesSearch = !searchQuery || 
+                    title.includes(searchQuery) || 
+                    author.includes(searchQuery);
+                
+                // 状态匹配
+                const matchesStatus = !statusFilter || status === statusFilter;
+                
+                // 分类匹配 (必须匹配所有选定的分类标签)
+                let matchesGenre = selectedGenres.length === 0; // 如果没有选中分类，则默认匹配
+                
+                if (!matchesGenre) {
+                    // 检查书籍是否包含所有选定的分类
+                    matchesGenre = selectedGenres.every(filter => {
+                        // 查找书籍的任一分类是否包含此过滤标签
+                        return genres.some(bookGenre => bookGenre.includes(filter.toLowerCase()));
+                    });
+                }
+                
+                // 作者匹配
+                let matchesAuthor = selectedAuthors.length === 0; // 如果没有选中作者，则默认匹配
+                
+                if (!matchesAuthor) {
+                    // 检查书籍作者是否匹配任一选中的作者
+                    matchesAuthor = selectedAuthors.some(selectedAuthor => 
+                        author === selectedAuthor.toLowerCase()
+                    );
+                }
+                
+                // 应用筛选
+                if (matchesSearch && matchesStatus && matchesGenre && matchesAuthor) {
+                    book.style.display = '';
+                } else {
+                    book.style.display = 'none';
+                }
+            });
+        }
+        
+        // 事件监听器
+        genreFilter.addEventListener('click', showDropdown);
+        genreSearchBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (genreDropdown.classList.contains('show')) {
+                hideDropdown();
+            } else {
+                showDropdown();
+            }
+        });
+        
+        genreSearchInput.addEventListener('input', function() {
+            filterTags(this.value);
+        });
+        
+        genreSearchInput.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+        
+        clearFilterBtn.addEventListener('click', function() {
+            clearFilterSelection();
+        });
+        
+        // 筛选类型切换事件
+        genreFilterTypeBtn.addEventListener('click', function() {
+            if (!this.classList.contains('active')) {
+                switchFilterType('genre');
+            }
+        });
+        
+        authorFilterTypeBtn.addEventListener('click', function() {
+            if (!this.classList.contains('active')) {
+                switchFilterType('author');
+            }
+        });
+        
+        genreCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateSelectedGenres();
+            });
+        });
+        
+        authorCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateSelectedAuthors();
+            });
+        });
+    }
+    
+    // 删除书籍函数
+    function deleteBook(bookId) {
+        if (confirm('确定要删除这本书吗？此操作无法撤销。')) {
+            fetch('/books/' + bookId + '/delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('图书已成功删除');
+                    // 刷新页面
+                    window.location.reload();
+                } else {
+                    throw new Error('删除失败');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('删除图书时出错: ' + error.message);
+            });
+        }
+    }
+    
+    // 详情按钮处理
+    function viewBookDetails(bookId) {
+        window.location.href = '/books/' + bookId;
+    }
+
+    // 为按钮添加事件监听
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始化筛选器
+        initializeFilters();
+        
+        // 删除按钮处理
+        document.querySelectorAll('.delete-book-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const bookId = this.getAttribute('data-id');
+                deleteBook(bookId);
+            });
+        });
+        
+        // 详情按钮处理
+        document.querySelectorAll('.details-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const bookId = this.getAttribute('data-id');
+                viewBookDetails(bookId);
+            });
+        });
+        
+        // 表格排序功能
+        document.querySelectorAll('th.sortable').forEach(header => {
+            header.addEventListener('click', function() {
+                const field = this.getAttribute('data-sort');
+                let direction = this.getAttribute('data-direction') || 'asc';
+                
+                // 切换排序方向
+                direction = direction === 'asc' ? 'desc' : 'asc';
+                
+                // 重置所有表头的排序方向
+                document.querySelectorAll('th.sortable').forEach(th => {
+                    th.removeAttribute('data-direction');
+                });
+                
+                // 设置当前表头的排序方向
+                this.setAttribute('data-direction', direction);
+                
+                // 获取表格和行
+                const table = this.closest('table');
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr.book-item:not([style*="display: none"])'));
+                
+                // 排序行
+                rows.sort((a, b) => {
+                    let valueA, valueB;
+                    
+                    if (field === 'title') {
+                        valueA = a.dataset.title;
+                        valueB = b.dataset.title;
+                    } else if (field === 'author') {
+                        valueA = a.dataset.author;
+                        valueB = b.dataset.author;
+                    } else if (field === 'year') {
+                        valueA = parseInt(a.dataset.year) || 0;
+                        valueB = parseInt(b.dataset.year) || 0;
+                        return direction === 'asc' ? valueA - valueB : valueB - valueA;
+                    } else if (field === 'rating') {
+                        valueA = parseFloat(a.dataset.rating) || 0;
+                        valueB = parseFloat(b.dataset.rating) || 0;
+                        console.log(`Comparing ratings: ${valueA} vs ${valueB}`);
+                        return direction === 'asc' ? valueA - valueB : valueB - valueA;
+                    }
+                    
+                    // 对于字符串类型，使用 localeCompare 进行比较
+                    if (typeof valueA === 'string' && typeof valueB === 'string') {
+                        return direction === 'asc' 
+                            ? valueA.localeCompare(valueB) 
+                            : valueB.localeCompare(valueA);
+                    }
+                    
+                    return 0;
+                });
+                
+                // 重新添加排序后的行
+                rows.forEach(row => tbody.appendChild(row));
+            });
+        });
+    });
+</script>
+{% endblock %} 

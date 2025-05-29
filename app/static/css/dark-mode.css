@@ -1,0 +1,357 @@
+/* 全局黑夜模式基础样式 */
+.dark-mode {
+    background-color: #1a1a1a;
+    color: #e1e1e1;
+}
+
+/* 修改黑夜模式下筛选栏和相关元素的样式 */
+.dark-mode .filter-bar,
+.dark-mode .filter-options,
+.dark-mode .filter-tags,
+.dark-mode .filter-container,
+.dark-mode .filter-wrapper,
+.dark-mode .checkbox-filters {
+    background-color: #2d2d2d;
+    color: #e1e1e1;
+    border-color: #444;
+}
+
+/* 搜索框样式 */
+.dark-mode input[type="text"],
+.dark-mode input[type="search"],
+.dark-mode input[type="number"],
+.dark-mode input[type="url"],
+.dark-mode input[type="email"],
+.dark-mode textarea,
+.dark-mode .search-box input,
+.dark-mode .form-control {
+    background-color: #333;
+    color: #e1e1e1;
+    border-color: #555;
+}
+
+/* 输入框占位符颜色 */
+.dark-mode input::placeholder,
+.dark-mode textarea::placeholder {
+    color: #888;
+}
+
+/* 勾选标签和显示标签样式 */
+.dark-mode .tag-checkbox label,
+.dark-mode .filter-checkbox label,
+.dark-mode .checkbox-label,
+.dark-mode .tag-label,
+.dark-mode .form-control-label,
+.dark-mode label {
+    color: #e1e1e1;
+}
+
+/* 确保所有相关输入元素在黑夜模式下有正确的颜色 */
+.dark-mode select,
+.dark-mode option,
+.dark-mode .form-select {
+    background-color: #333;
+    color: #e1e1e1;
+    border-color: #555;
+}
+
+/* 筛选选项激活状态 */
+.dark-mode .filter-option.active,
+.dark-mode .filter-option:hover {
+    background-color: #444;
+    color: #fff;
+}
+
+/* 音乐项目卡片样式 */
+.dark-mode .music-item,
+.dark-mode .card,
+.dark-mode .card-body,
+.dark-mode .card-header,
+.dark-mode .card-footer {
+    background-color: #2d2d2d;
+    color: #e1e1e1;
+    border-color: #444;
+}
+
+/* 表格样式 */
+.dark-mode .table,
+.dark-mode .table-hover tbody tr:hover {
+    color: #e1e1e1;
+}
+
+.dark-mode .table-hover tbody tr:hover {
+    background-color: #3a3a3a;
+}
+
+.dark-mode .table th,
+.dark-mode .table td {
+    border-color: #444;
+}
+
+.dark-mode .table-sortable th.sortable:hover {
+    background-color: #3a3a3a;
+}
+
+/* 导航栏和页脚样式 */
+.dark-mode .navbar-dark {
+    background-color: #1e3a8a !important;
+}
+
+.dark-mode footer.bg-light {
+    background-color: #2d2d2d !important;
+    color: #e1e1e1;
+}
+
+/* 模态框样式 */
+.dark-mode .modal-content {
+    background-color: #2d2d2d;
+    color: #e1e1e1;
+    border-color: #444;
+}
+
+.dark-mode .modal-header,
+.dark-mode .modal-footer {
+    border-color: #444;
+}
+
+/* 按钮样式调整 */
+.dark-mode .btn-secondary {
+    background-color: #444;
+    border-color: #555;
+}
+
+.dark-mode .btn-outline-secondary {
+    color: #e1e1e1;
+    border-color: #555;
+}
+
+.dark-mode .btn-outline-secondary:hover {
+    background-color: #444;
+    color: #fff;
+}
+
+.dark-mode .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* 列表组样式 */
+.dark-mode .list-group-item {
+    background-color: #2d2d2d;
+    color: #e1e1e1;
+    border-color: #444;
+}
+
+.dark-mode .list-group-item-action:hover {
+    background-color: #3a3a3a;
+}
+
+.dark-mode .list-group-item-action:active {
+    background-color: #444;
+}
+
+/* 徽章样式 */
+.dark-mode .badge.bg-secondary {
+    background-color: #555 !important;
+}
+
+/* 提示框样式 */
+.dark-mode .alert {
+    background-color: #2d2d2d;
+    color: #e1e1e1;
+    border-color: #444;
+}
+
+.dark-mode .alert-info {
+    background-color: #1a3b4a;
+    border-color: #246;
+}
+
+.dark-mode .alert-success {
+    background-color: #1a3b2a;
+    border-color: #264;
+}
+
+.dark-mode .alert-warning {
+    background-color: #3b3a1a;
+    border-color: #642;
+}
+
+.dark-mode .alert-danger {
+    background-color: #3b1a1a;
+    border-color: #622;
+}
+
+/* 下拉菜单样式 */
+.dark-mode .dropdown-menu {
+    background-color: #2d2d2d;
+    color: #e1e1e1;
+    border-color: #444;
+}
+
+.dark-mode .dropdown-item {
+    color: #e1e1e1;
+}
+
+.dark-mode .dropdown-item:hover {
+    background-color: #3a3a3a;
+}
+
+/* 分页样式 */
+.dark-mode .page-link {
+    background-color: #2d2d2d;
+    color: #e1e1e1;
+    border-color: #444;
+}
+
+.dark-mode .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+/* 星级评分样式 */
+.dark-mode .star {
+    color: #666;
+}
+
+.dark-mode .star.filled {
+    color: #ffcc00;
+}
+
+/* 文本颜色调整 */
+.dark-mode .text-muted {
+    color: #aaa !important;
+}
+
+/* 面包屑导航 */
+.dark-mode .breadcrumb {
+    background-color: #2d2d2d;
+}
+
+.dark-mode .breadcrumb-item.active {
+    color: #aaa;
+}
+
+.dark-mode .breadcrumb-item + .breadcrumb-item::before {
+    color: #888;
+}
+
+/* 主页欢迎区域 */
+.dark-mode .jumbotron.bg-light {
+    background-color: #2d2d2d !important;
+}
+
+/* 数据列表和选项样式 */
+.dark-mode datalist,
+.dark-mode option {
+    background-color: #333;
+    color: #e1e1e1;
+}
+
+/* 确保表单文本提示正确显示 */
+.dark-mode .form-text {
+    color: #aaa;
+}
+
+/* 确保状态选择下拉框在黑夜模式下正确显示 */
+.dark-mode select#status option {
+    background-color: #333;
+    color: #e1e1e1;
+}
+
+/* 确保音乐详情页面中的标签正确显示 */
+.dark-mode .badge {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 确保音乐表格视图在黑夜模式下正确显示 */
+.dark-mode .table-content .table {
+    background-color: #2d2d2d;
+}
+
+/* 确保音乐列表视图在黑夜模式下正确显示 */
+.dark-mode .media-row {
+    background-color: #2d2d2d;
+    border-color: #444;
+}
+
+.dark-mode .media-thumbnail {
+    border-color: #444;
+}
+
+/* 统一筛选器黑暗模式样式 */
+.dark-mode .filter-container {
+    background-color: #2d2d2d;
+    border-color: #444;
+}
+
+.dark-mode .genre-input {
+    background-color: #333;
+    border-color: #555;
+    color: #e1e1e1;
+}
+
+.dark-mode .genre-input-placeholder {
+    color: #888;
+}
+
+.dark-mode .genre-search-icon {
+    color: #888;
+}
+
+.dark-mode .genre-dropdown-menu {
+    background-color: #2d2d2d;
+    border-color: #444;
+}
+
+.dark-mode .genre-label {
+    background-color: #333;
+    border-color: #555;
+    color: #e1e1e1;
+}
+
+.dark-mode .genre-label:hover {
+    background-color: #444;
+}
+
+.dark-mode .selected-genre-tag {
+    background-color: #444;
+    color: #e1e1e1;
+}
+
+/* 音乐筛选下拉菜单 */
+.dark-mode .genre-dropdown-menu {
+    background-color: #333;
+    border-color: #555;
+}
+
+.dark-mode .genre-label {
+    background-color: #2d2d2d;
+    border-color: #555;
+    color: #e1e1e1;
+}
+
+.dark-mode .genre-label:hover {
+    background-color: #444;
+}
+
+.dark-mode .selected-genre-tag {
+    background-color: #444;
+    color: #e1e1e1;
+}
+
+/* 确保没有封面的占位符在黑夜模式下可见 */
+.dark-mode .no-cover {
+    background-color: #333;
+    color: #aaa;
+    border: 1px solid #444;
+}
+
+/* 确保评分星星在黑夜模式下可见 */
+.dark-mode .bi-star-fill.text-warning,
+.dark-mode .bi-star-half.text-warning {
+    color: #ffcc00 !important;
+}
+
+.dark-mode .bi-star {
+    color: #666;
+} 

@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}私密艺术家 - 书影音管理{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>私密艺术家</h1>
+    <button class="btn btn-primary" id="add-artist">
+        <i class="bi bi-plus-lg"></i> 添加艺术家
+    </button>
+</div>
+
+<div class="private-content">
+    <div class="row">
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card artist-card h-100">
+                <div class="card-header bg-dark text-white">
+                    <i class="bi bi-lock-fill"></i> 私密内容
+                </div>
+                <img src="https://via.placeholder.com/300x300" class="card-img-top" alt="艺术家照片">
+                <div class="card-body">
+                    <h5 class="card-title">艺术家名称 1</h5>
+                    <p class="card-text"><span class="badge bg-secondary">摄影师</span></p>
+                    <p class="card-text">这位艺术家的简介和代表作品描述...</p>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-sm btn-outline-primary w-100">
+                        <i class="bi bi-collection"></i> 查看作品集
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card artist-card h-100">
+                <div class="card-header bg-dark text-white">
+                    <i class="bi bi-lock-fill"></i> 私密内容
+                </div>
+                <img src="https://via.placeholder.com/300x300" class="card-img-top" alt="艺术家照片">
+                <div class="card-body">
+                    <h5 class="card-title">艺术家名称 2</h5>
+                    <p class="card-text"><span class="badge bg-secondary">画家</span></p>
+                    <p class="card-text">这位艺术家的简介和代表作品描述...</p>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-sm btn-outline-primary w-100">
+                        <i class="bi bi-collection"></i> 查看作品集
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card artist-card h-100">
+                <div class="card-header bg-dark text-white">
+                    <i class="bi bi-lock-fill"></i> 私密内容
+                </div>
+                <img src="https://via.placeholder.com/300x300" class="card-img-top" alt="艺术家照片">
+                <div class="card-body">
+                    <h5 class="card-title">艺术家名称 3</h5>
+                    <p class="card-text"><span class="badge bg-secondary">雕塑家</span></p>
+                    <p class="card-text">这位艺术家的简介和代表作品描述...</p>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-sm btn-outline-primary w-100">
+                        <i class="bi bi-collection"></i> 查看作品集
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card artist-card h-100">
+                <div class="card-header bg-dark text-white">
+                    <i class="bi bi-lock-fill"></i> 私密内容
+                </div>
+                <img src="https://via.placeholder.com/300x300" class="card-img-top" alt="艺术家照片">
+                <div class="card-body">
+                    <h5 class="card-title">艺术家名称 4</h5>
+                    <p class="card-text"><span class="badge bg-secondary">摄影师</span></p>
+                    <p class="card-text">这位艺术家的简介和代表作品描述...</p>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-sm btn-outline-primary w-100">
+                        <i class="bi bi-collection"></i> 查看作品集
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 艺术家分类 -->
+    <div class="mt-5">
+        <h3 class="mb-4">按类别浏览</h3>
+        <div class="row">
+            <div class="col-md-3 col-sm-6 mb-4">
+                <div class="card category-card">
+                    <div class="card-body text-center">
+                        <i class="bi bi-camera2 category-icon"></i>
+                        <h5 class="card-title mt-3">摄影师</h5>
+                        <p class="card-text text-muted">12 位艺术家</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 col-sm-6 mb-4">
+                <div class="card category-card">
+                    <div class="card-body text-center">
+                        <i class="bi bi-palette category-icon"></i>
+                        <h5 class="card-title mt-3">画家</h5>
+                        <p class="card-text text-muted">8 位艺术家</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 col-sm-6 mb-4">
+                <div class="card category-card">
+                    <div class="card-body text-center">
+                        <i class="bi bi-brush category-icon"></i>
+                        <h5 class="card-title mt-3">雕塑家</h5>
+                        <p class="card-text text-muted">5 位艺术家</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 col-sm-6 mb-4">
+                <div class="card category-card">
+                    <div class="card-body text-center">
+                        <i class="bi bi-film category-icon"></i>
+                        <h5 class="card-title mt-3">电影导演</h5>
+                        <p class="card-text text-muted">7 位艺术家</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 密码验证模态框 -->
+<div class="modal fade" id="passwordModal" tabindex="-1" aria-labelledby="passwordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="passwordModalLabel">
+                    <i class="bi bi-shield-lock"></i> 验证访问权限
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>请输入访问密码以查看私密内容：</p>
+                <div class="input-group mb-3">
+                    <span class="input-group-text">
+                        <i class="bi bi-key"></i>
+                    </span>
+                    <input type="password" class="form-control" id="access-password" placeholder="请输入密码">
+                </div>
+                <div class="alert alert-danger d-none" id="password-error">
+                    密码错误，请重试！
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="verify-password">验证</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+    .artist-card {
+        transition: transform 0.3s ease;
+    }
+    
+    .artist-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .category-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .category-card:hover {
+        background-color: #f8f9fa;
+        transform: translateY(-5px);
+    }
+    
+    .category-icon {
+        font-size: 2.5rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 页面加载时显示密码验证模态框
+    document.addEventListener('DOMContentLoaded', function() {
+        const passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
+        passwordModal.show();
+    });
+    
+    // 验证密码
+    document.getElementById('verify-password').addEventListener('click', function() {
+        const password = document.getElementById('access-password').value;
+        const errorAlert = document.getElementById('password-error');
+        
+        // 这里应该是一个安全的服务器端验证
+        // 这里仅作为示例，实际应用中应该使用更安全的方法
+        if (password === '123456') {
+            // 密码正确，关闭模态框
+            const passwordModal = bootstrap.Modal.getInstance(document.getElementById('passwordModal'));
+            passwordModal.hide();
+        } else {
+            // 密码错误，显示错误信息
+            errorAlert.classList.remove('d-none');
+        }
+    });
+    
+    // 添加艺术家按钮
+    document.getElementById('add-artist').addEventListener('click', function() {
+        alert('添加艺术家功能将在未来版本中推出');
+    });
+    
+    // 类别卡片点击事件
+    document.querySelectorAll('.category-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const category = this.querySelector('.card-title').textContent;
+            alert('查看' + category + '类别的功能将在未来版本中推出');
+        });
+    });
+    
+    // 查看作品集按钮
+    document.querySelectorAll('.card-footer .btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const artistName = this.closest('.card').querySelector('.card-title').textContent;
+            alert('查看' + artistName + '的作品集功能将在未来版本中推出');
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if movie %}编辑电影{% else %}添加电影{% endif %} - 书影音管理
+{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">首页</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('movies') }}">电影</a></li>
+                    <li class="breadcrumb-item active">{% if movie %}编辑{% else %}添加{% endif %}电影</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">{% if movie %}编辑电影{% else %}添加电影{% endif %}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{% if movie %}{{ url_for('edit_movie_route', movie_id=movie.id) }}{% else %}{{ url_for('add_movie_route') }}{% endif %}">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">电影名 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="title" name="title" value="{{ movie.title if movie else '' }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="director" class="form-label">导演 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="director" name="director" value="{{ movie.director if movie else '' }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="cast" class="form-label">主演</label>
+                                    <input type="text" class="form-control" id="cast" name="cast" value="{{ movie.cast if movie else '' }}">
+                                    <div class="form-text">多个主演请用逗号分隔</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="year" class="form-label">发行年份</label>
+                                    <input type="number" class="form-control" id="year" name="year" value="{{ movie.year if movie else '' }}" min="1900" max="{{ now.year }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="genre" class="form-label">类型/分类</label>
+                                    <input type="text" class="form-control" id="genre" name="genre" value="{{ movie.genre if movie else '' }}" list="genre-list">
+                                    <datalist id="genre-list">
+                                        <option value="动作">
+                                        <option value="冒险">
+                                        <option value="喜剧">
+                                        <option value="剧情">
+                                        <option value="恐怖">
+                                        <option value="科幻">
+                                        <option value="奇幻">
+                                        <option value="动画">
+                                        <option value="纪录片">
+                                        <option value="爱情">
+                                        <option value="惊悚">
+                                        <option value="战争">
+                                        <option value="西部">
+                                        <option value="音乐">
+                                    </datalist>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="poster_url" class="form-label">海报图片URL</label>
+                                    <input type="url" class="form-control" id="poster_url" name="poster_url" value="{{ movie.poster_url if movie else '' }}">
+                                    <div class="form-text">输入电影海报的图片链接</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="rating" class="form-label">评分</label>
+                                    <select class="form-select" id="rating" name="rating">
+                                        <option value="" {% if not movie or not movie.rating %}selected{% endif %}>未评分</option>
+                                        <option value="0" {% if movie and movie.rating == '0' %}selected{% endif %}>☆☆☆☆☆ (0分)</option>
+                                        <option value="0.5" {% if movie and movie.rating == '0.5' %}selected{% endif %}>½☆☆☆☆ (0.5分)</option>
+                                        <option value="1" {% if movie and movie.rating == '1' %}selected{% endif %}>★☆☆☆☆ (1分)</option>
+                                        <option value="1.5" {% if movie and movie.rating == '1.5' %}selected{% endif %}>★½☆☆☆ (1.5分)</option>
+                                        <option value="2" {% if movie and movie.rating == '2' %}selected{% endif %}>★★☆☆☆ (2分)</option>
+                                        <option value="2.5" {% if movie and movie.rating == '2.5' %}selected{% endif %}>★★½☆☆ (2.5分)</option>
+                                        <option value="3" {% if movie and movie.rating == '3' %}selected{% endif %}>★★★☆☆ (3分)</option>
+                                        <option value="3.5" {% if movie and movie.rating == '3.5' %}selected{% endif %}>★★★½☆ (3.5分)</option>
+                                        <option value="4" {% if movie and movie.rating == '4' %}selected{% endif %}>★★★★☆ (4分)</option>
+                                        <option value="4.5" {% if movie and movie.rating == '4.5' %}selected{% endif %}>★★★★½ (4.5分)</option>
+                                        <option value="5" {% if movie and movie.rating == '5' %}selected{% endif %}>★★★★★ (5分)</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">观看状态</label>
+                                    <select class="form-select" id="status" name="status">
+                                        <option value="unwatched" {% if movie and movie.status == 'unwatched' %}selected{% endif %}>未看</option>
+                                        <option value="watching" {% if movie and movie.status == 'watching' %}selected{% endif %}>在看</option>
+                                        <option value="watched" {% if movie and movie.status == 'watched' %}selected{% endif %}>已看</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">简介</label>
+                            <textarea class="form-control" id="description" name="description" rows="4">{{ movie.description if movie else '' }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">笔记/评论</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="4">{{ movie.notes if movie else '' }}</textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% if movie %}{{ url_for('movie_detail', movie_id=movie.id) }}{% else %}{{ url_for('movies') }}{% endif %}" class="btn btn-secondary">取消</a>
+                            <button type="submit" class="btn btn-success">{% if movie %}更新{% else %}添加{% endif %}电影</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

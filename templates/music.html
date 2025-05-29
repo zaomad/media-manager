@@ -1,0 +1,987 @@
+{% extends "base.html" %}
+
+{% block title %}音乐管理 - 书影音管理{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+<style>
+    th.sortable {
+        cursor: pointer;
+    }
+    th.sortable:hover {
+        background-color: #f8f9fa;
+    }
+    th.sortable[data-direction="asc"] i {
+        transform: rotate(0deg);
+    }
+    th.sortable[data-direction="desc"] i {
+        transform: rotate(180deg);
+    }
+    /* 分类标签过滤器样式 */
+    .genre-filter-container {
+        margin-bottom: 15px;
+        position: relative;
+    }
+    .genre-filter-title {
+        font-weight: bold;
+        margin-bottom: 8px;
+    }
+    .genre-dropdown {
+        position: relative;
+    }
+    .genre-input-container {
+        position: relative;
+    }
+    .genre-input {
+        min-height: 38px;
+        height: auto;
+        padding: 0.375rem 40px 0.375rem 0.75rem;
+        cursor: pointer;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 5px;
+    }
+    .genre-input-placeholder {
+        color: #6c757d;
+    }
+    .genre-search-icon {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        z-index: 5;
+    }
+    .genre-dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        max-height: 300px;
+        overflow-y: auto;
+        background-color: white;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        z-index: 1000;
+        padding: 0.5rem;
+        display: none;
+    }
+    .genre-dropdown-menu.show {
+        display: block;
+    }
+    .genre-tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .genre-tag-item, .author-tag-item {
+        margin-bottom: 5px;
+    }
+    .genre-checkbox, .author-checkbox {
+        display: none !important;
+        opacity: 0;
+        position: absolute;
+        pointer-events: none;
+    }
+    .genre-label, .author-label {
+        display: inline-block;
+        padding: 5px 10px;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.9rem;
+    }
+    .genre-checkbox:checked + .genre-label, .author-checkbox:checked + .author-label {
+        background-color: #0d6efd;
+        color: white;
+        border-color: #0d6efd;
+    }
+    .selected-genre-tag {
+        display: inline-flex;
+        align-items: center;
+        background-color: #e9ecef;
+        border-radius: 16px;
+        padding: 2px 8px;
+        margin-right: 5px;
+        margin-bottom: 5px;
+        font-size: 0.85rem;
+    }
+    .selected-genre-tag .remove-genre {
+        margin-left: 5px;
+        cursor: pointer;
+        color: #6c757d;
+    }
+    .selected-genre-tag .remove-genre:hover {
+        color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>我的音乐</h1>
+    <a href="{{ url_for('add_music_route') }}" class="btn btn-success">
+        <i class="bi bi-plus-lg"></i> 添加音乐
+    </a>
+</div>
+
+<div id="music-app">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="搜索音乐..." v-model="searchQuery">
+                <button class="btn btn-outline-secondary" type="button" @click="search">
+                    <i class="bi bi-search"></i> 搜索
+                </button>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <select class="form-select" v-model="filterStatus">
+                <option value="">所有状态</option>
+                <option value="unlistened">未听</option>
+                <option value="listening">在听</option>
+                <option value="listened">已听</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 分类/艺术家过滤器 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="genre-filter-container">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="filter-type-toggle btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-primary active" id="genreFilterTypeBtn" data-filter-type="genre">
+                            按分类筛选
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="artistFilterTypeBtn" data-filter-type="author">
+                            按艺术家筛选
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="clearFilterBtn">清除筛选</button>
+                </div>
+                <div class="genre-dropdown">
+                    <div class="genre-input-container">
+                        <div class="form-control genre-input" id="genreFilter">
+                            <span class="genre-input-placeholder" id="filterPlaceholder">选择或搜索分类标签...</span>
+                        </div>
+                        <div class="genre-search-icon" id="genreSearchBtn">
+                            <i class="bi bi-funnel-fill"></i>
+                        </div>
+                    </div>
+                    <div class="genre-dropdown-menu" id="genreDropdownMenu">
+                        <div class="mb-2">
+                            <input type="text" class="form-control" id="genreSearchInput" placeholder="搜索...">
+                        </div>
+                        
+                        <!-- 分类标签容器 -->
+                        <div class="genre-tags-container" id="genreTagsContainer">
+                            <div class="row row-cols-3 g-2 w-100">
+                                {% for genre in genres %}
+                                <div class="col genre-tag-item filter-genre-item">
+                                    <input type="checkbox" class="genre-checkbox" id="genre_{{ loop.index }}" value="{{ genre }}" hidden>
+                                    <label class="genre-label w-100 text-center" for="genre_{{ loop.index }}">{{ genre }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- 艺术家标签容器 -->
+                        <div class="author-tags-container" id="artistTagsContainer" style="display: none;">
+                            <div class="row row-cols-3 g-2 w-100">
+                                {% for artist in artists %}
+                                <div class="col artist-tag-item filter-artist-item">
+                                    <input type="checkbox" class="artist-checkbox" id="artist_{{ loop.index }}" value="{{ artist }}" hidden>
+                                    <label class="author-label w-100 text-center" for="artist_{{ loop.index }}">{{ artist }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 视图切换按钮 -->
+    <div class="view-toggle d-flex justify-content-end mb-3">
+        <div class="btn-group" role="group" aria-label="视图切换">
+            <button type="button" class="btn btn-outline-secondary active" data-view="grid">
+                <i class="bi bi-grid-3x3-gap"></i> 卡片视图
+            </button>
+            <button type="button" class="btn btn-outline-secondary" data-view="list">
+                <i class="bi bi-list-ul"></i> 列表视图
+            </button>
+            <button type="button" class="btn btn-outline-secondary" data-view="table">
+                <i class="bi bi-table"></i> 表格视图
+            </button>
+        </div>
+    </div>
+
+    <!-- 媒体容器 -->
+    <div class="media-container grid-view">
+        <!-- 卡片视图 -->
+        <div class="view-content grid-content">
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                {% for music in musics %}
+                <div class="col music-item" 
+                    data-album="{{ music.album|lower }}" 
+                    data-artist="{{ music.artist|lower }}" 
+                    data-status="{{ music.status }}"
+                    data-year="{{ music.year }}"
+                    data-genre="{{ music.genre|lower }}"
+                    data-rating="{{ music.rating }}">
+                    <div class="card h-100">
+                        {% if music.cover_url %}
+                        <img src="{{ music.cover_url }}" class="card-img-top" alt="{{ music.album }}" style="height: 300px; object-fit: cover;">
+                        {% else %}
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 300px;">
+                            <i class="bi bi-music-note-beamed" style="font-size: 3rem;"></i>
+                        </div>
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ music.album }}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">{{ music.artist }}</h6>
+                            <p class="card-text">
+                                {% if music.year %}<small class="text-muted">{{ music.year }}</small>{% endif %}
+                                {% if music.genre %}<small class="text-muted">{{ music.genre }}</small>{% endif %}
+                            </p>
+                            {% if music.rating %}
+                            <div class="mb-2">
+                                {% for i in range(1, music.rating|int + 1) %}
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                {% endfor %}
+                                {% if music.rating|float % 1 >= 0.5 %}
+                                    <i class="bi bi-star-half text-warning"></i>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge {% if music.status == 'listened' %}bg-success{% elif music.status == 'listening' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                    {% if music.status == 'listened' %}已听
+                                    {% elif music.status == 'listening' %}在听
+                                    {% else %}未听
+                                    {% endif %}
+                                </span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary details-btn" data-id="{{ music.id }}">
+                                        <i class="bi bi-info-circle"></i> 详情
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <button class="btn btn-sm btn-outline-danger delete-music-btn" data-id="{{ music.id }}" style="display: none;">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <a href="{{ url_for('edit_music_route', music_id=music.id) }}" class="btn btn-sm btn-outline-secondary" style="display: none;">
+                                        <i class="bi bi-pencil"></i> 编辑
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12">
+                    <div class="alert alert-info" role="alert">
+                        您还没有添加任何音乐。<a href="{{ url_for('add_music_route') }}" class="alert-link">添加一首音乐</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 列表视图 -->
+        <div class="view-content list-content" style="display: none;">
+            {% if musics %}
+                {% for music in musics %}
+                <div class="media-item music-item"
+                     data-album="{{ music.album|lower }}" 
+                     data-artist="{{ music.artist|lower }}" 
+                     data-status="{{ music.status }}"
+                     data-year="{{ music.year }}"
+                     data-genre="{{ music.genre|lower }}"
+                     data-rating="{{ music.rating }}">
+                    <div class="media-row">
+                        {% if music.cover_url %}
+                        <img src="{{ music.cover_url }}" class="media-thumbnail" alt="{{ music.album }}">
+                        {% else %}
+                        <div class="media-thumbnail bg-light d-flex align-items-center justify-content-center">
+                            <i class="bi bi-music-note-beamed"></i>
+                        </div>
+                        {% endif %}
+                        <div class="media-content">
+                            <div class="media-title">{{ music.album }}</div>
+                            <div class="media-info">
+                                <span>{{ music.artist }}</span>
+                                {% if music.year %} · <span>{{ music.year }}</span>{% endif %}
+                                {% if music.genre %} · <span>{{ music.genre }}</span>{% endif %}
+                                <span class="badge ms-2 {% if music.status == 'listened' %}bg-success{% elif music.status == 'listening' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                    {% if music.status == 'listened' %}已听
+                                    {% elif music.status == 'listening' %}在听
+                                    {% else %}未听
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="media-rating">
+                            {% if music.rating %}
+                                {% for i in range(1, music.rating|int + 1) %}
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                {% endfor %}
+                                {% if music.rating|float % 1 >= 0.5 %}
+                                    <i class="bi bi-star-half text-warning"></i>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        <div class="ms-3">
+                            <button class="btn btn-sm btn-outline-primary details-btn me-1" data-id="{{ music.id }}">
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger delete-music-btn me-1" data-id="{{ music.id }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            <a href="{{ url_for('edit_music_route', music_id=music.id) }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info" role="alert">
+                    您还没有添加任何音乐。<a href="{{ url_for('add_music_route') }}" class="alert-link">添加一首音乐</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- 表格视图 -->
+        <div class="view-content table-content" style="display: none;">
+            {% if musics %}
+            <div class="table-responsive table-view">
+                <table class="table table-hover table-sortable">
+                    <thead>
+                        <tr>
+                            <th scope="col" style="width: 60px;">#</th>
+                            <th scope="col" class="sortable" data-sort="album">专辑 <i class="bi bi-arrow-down-short"></i></th>
+                            <th scope="col" class="sortable" data-sort="artist">艺术家 <i class="bi bi-arrow-down-short"></i></th>
+                            <th scope="col" class="sortable" data-sort="year">年份 <i class="bi bi-arrow-down-short"></i></th>
+                            <th scope="col">类型</th>
+                            <th scope="col">状态</th>
+                            <th scope="col" class="sortable" data-sort="rating">评分 <i class="bi bi-arrow-down-short"></i></th>
+                            <th scope="col" style="width: 100px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for music in musics %}
+                        <tr class="music-item"
+                            data-album="{{ music.album|lower }}" 
+                            data-artist="{{ music.artist|lower }}" 
+                            data-status="{{ music.status }}"
+                            data-year="{{ music.year }}"
+                            data-genre="{{ music.genre|lower }}"
+                            data-rating="{{ music.rating }}">
+                            <td>
+                                {% if music.cover_url %}
+                                <img src="{{ music.cover_url }}" class="media-thumbnail" alt="{{ music.album }}">
+                                {% else %}
+                                <div class="media-thumbnail bg-light d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-music-note-beamed"></i>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td>{{ music.album }}</td>
+                            <td>{{ music.artist }}</td>
+                            <td>{{ music.year }}</td>
+                            <td>{{ music.genre }}</td>
+                            <td>
+                                <span class="badge {% if music.status == 'listened' %}bg-success{% elif music.status == 'listening' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                    {% if music.status == 'listened' %}已听
+                                    {% elif music.status == 'listening' %}在听
+                                    {% else %}未听
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                {% if music.rating %}
+                                    {% for i in range(1, music.rating|int + 1) %}
+                                        <i class="bi bi-star-fill text-warning"></i>
+                                    {% endfor %}
+                                    {% if music.rating|float % 1 >= 0.5 %}
+                                        <i class="bi bi-star-half text-warning"></i>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary details-btn" data-id="{{ music.id }}">
+                                        <i class="bi bi-info-circle"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-music-btn" data-id="{{ music.id }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <a href="{{ url_for('edit_music_route', music_id=music.id) }}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+                <div class="alert alert-info" role="alert">
+                    您还没有添加任何音乐。<a href="{{ url_for('add_music_route') }}" class="alert-link">添加一首音乐</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    new Vue({
+        el: '#music-app',
+        data: {
+            searchQuery: '',
+            filterStatus: ''
+        },
+        methods: {
+            search: function() {
+                const query = this.searchQuery.toLowerCase();
+                const status = this.filterStatus;
+                
+                document.querySelectorAll('.music-item').forEach(item => {
+                    const album = item.dataset.album;
+                    const artist = item.dataset.artist;
+                    const itemStatus = item.dataset.status;
+                    
+                    const matchesSearch = album.includes(query) || artist.includes(query);
+                    const matchesStatus = !status || itemStatus === status;
+                    
+                    if (matchesSearch && matchesStatus) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+        },
+        watch: {
+            filterStatus: function() {
+                this.search();
+            }
+        },
+        mounted: function() {
+            // 从本地存储加载视图偏好
+            const preferredView = localStorage.getItem('preferredView') || 'grid';
+            
+            // 更新视图切换按钮状态
+            document.querySelectorAll('.view-toggle .btn').forEach(btn => {
+                if (btn.getAttribute('data-view') === preferredView) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+    });
+
+    // 将音乐数据转换为JavaScript变量
+    var musicsData = [];
+    try {
+        musicsData = JSON.parse('{{ musics|tojson|safe }}');
+    } catch (e) {
+        console.error('Error parsing musics data:', e);
+        musicsData = [];
+    }
+    
+    // 删除音乐函数
+    function deleteMusic(musicId) {
+        if (confirm('确定要删除这首音乐吗？此操作无法撤销。')) {
+            fetch('/music/' + musicId + '/delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('音乐已成功删除');
+                    // 刷新页面
+                    window.location.reload();
+                } else {
+                    throw new Error('删除失败');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('删除音乐时出错: ' + error.message);
+            });
+        }
+    }
+    
+    // 详情按钮处理
+    function viewMusicDetails(musicId) {
+        window.location.href = '/music/' + musicId;
+    }
+
+    // 初始化筛选器
+    function initializeFilters() {
+        const genreFilter = document.getElementById('genreFilter');
+        const filterPlaceholder = document.getElementById('filterPlaceholder');
+        const genreDropdown = document.getElementById('genreDropdownMenu');
+        const genreSearchBtn = document.getElementById('genreSearchBtn');
+        const genreSearchInput = document.getElementById('genreSearchInput');
+        const clearFilterBtn = document.getElementById('clearFilterBtn');
+        const genreCheckboxes = document.querySelectorAll('.genre-checkbox');
+        const artistCheckboxes = document.querySelectorAll('.artist-checkbox');
+        
+        // 筛选类型切换按钮
+        const genreFilterTypeBtn = document.getElementById('genreFilterTypeBtn');
+        const artistFilterTypeBtn = document.getElementById('artistFilterTypeBtn');
+        const genreTagsContainer = document.getElementById('genreTagsContainer');
+        const artistTagsContainer = document.getElementById('artistTagsContainer');
+
+        let selectedGenres = [];
+        let selectedArtists = [];
+        let currentFilterType = 'genre'; // 默认为分类筛选
+        
+        // 显示下拉框
+        function showDropdown() {
+            genreDropdown.classList.add('show');
+            
+            // 点击外部关闭下拉框
+            document.addEventListener('click', handleOutsideClick);
+        }
+        
+        // 隐藏下拉框
+        function hideDropdown() {
+            genreDropdown.classList.remove('show');
+            document.removeEventListener('click', handleOutsideClick);
+        }
+        
+        // 处理外部点击
+        function handleOutsideClick(e) {
+            const isDropdownClick = genreDropdown.contains(e.target) || 
+                                    genreFilter.contains(e.target) || 
+                                    genreSearchBtn.contains(e.target);
+            
+            if (!isDropdownClick) {
+                hideDropdown();
+            }
+        }
+        
+        // 更新已选分类显示
+        function updateSelectedGenres() {
+            // 清除所有现有标签和占位符
+            const existingTags = genreFilter.querySelectorAll('.selected-genre-tag');
+            existingTags.forEach(tag => tag.remove());
+            
+            selectedGenres = [];
+            
+            genreCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    const genreValue = checkbox.value;
+                    selectedGenres.push(genreValue);
+                    
+                    // 创建标签元素
+                    const tag = document.createElement('span');
+                    tag.className = 'selected-genre-tag';
+                    tag.innerHTML = `
+                        ${genreValue}
+                        <span class="remove-genre" data-genre="${genreValue}">×</span>
+                    `;
+                    
+                    // 在占位符之前插入标签
+                    genreFilter.insertBefore(tag, filterPlaceholder);
+                }
+            });
+            
+            // 切换占位符的可见性
+            if (selectedGenres.length > 0) {
+                filterPlaceholder.style.display = 'none';
+            } else {
+                filterPlaceholder.style.display = '';
+            }
+            
+            // 为移除按钮添加事件
+            document.querySelectorAll('.remove-genre').forEach(btn => {
+                if (btn.dataset.genre) {  // 确保这是一个分类标签
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const genre = this.dataset.genre;
+                        
+                        // 取消对应的复选框
+                        document.querySelector(`.genre-checkbox[value="${genre}"]`).checked = false;
+                        updateSelectedGenres();
+                        
+                        // 实时筛选
+                        filterMusic();
+                    });
+                }
+            });
+            
+            // 实时筛选
+            filterMusic();
+        }
+
+        // 更新已选艺术家显示
+        function updateSelectedArtists() {
+            // 清除所有现有标签和占位符
+            const existingTags = genreFilter.querySelectorAll('.selected-genre-tag');
+            existingTags.forEach(tag => tag.remove());
+            
+            selectedArtists = [];
+            
+            artistCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    const artistValue = checkbox.value;
+                    selectedArtists.push(artistValue);
+                    
+                    // 创建标签元素
+                    const tag = document.createElement('span');
+                    tag.className = 'selected-genre-tag';
+                    tag.innerHTML = `
+                        ${artistValue}
+                        <span class="remove-genre" data-artist="${artistValue}">×</span>
+                    `;
+                    
+                    // 在占位符之前插入标签
+                    genreFilter.insertBefore(tag, filterPlaceholder);
+                }
+            });
+            
+            // 切换占位符的可见性
+            if (selectedArtists.length > 0) {
+                filterPlaceholder.style.display = 'none';
+            } else {
+                filterPlaceholder.style.display = '';
+            }
+            
+            // 为移除按钮添加事件
+            document.querySelectorAll('.remove-genre').forEach(btn => {
+                if (btn.dataset.artist) {  // 确保这是一个艺术家标签
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const artist = this.dataset.artist;
+                        
+                        // 取消对应的复选框
+                        document.querySelector(`.artist-checkbox[value="${artist}"]`).checked = false;
+                        updateSelectedArtists();
+                        
+                        // 实时筛选
+                        filterMusic();
+                    });
+                }
+            });
+            
+            // 实时筛选
+            filterMusic();
+        }
+        
+        // 筛选标签
+        function filterTags(query) {
+            const normalizedQuery = query.toLowerCase();
+            
+            if (currentFilterType === 'genre') {
+                document.querySelectorAll('.filter-genre-item').forEach(item => {
+                    const label = item.querySelector('.genre-label');
+                    const text = label.textContent.toLowerCase();
+                    
+                    if (text.includes(normalizedQuery)) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            } else {
+                document.querySelectorAll('.filter-artist-item').forEach(item => {
+                    const label = item.querySelector('.author-label');
+                    const text = label.textContent.toLowerCase();
+                    
+                    if (text.includes(normalizedQuery)) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+        }
+        
+        // 清除所有选择
+        function clearFilterSelection() {
+            if (currentFilterType === 'genre') {
+                genreCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                updateSelectedGenres();
+            } else {
+                artistCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                updateSelectedArtists();
+            }
+        }
+
+        // 切换筛选类型
+        function switchFilterType(type) {
+            currentFilterType = type;
+            
+            if (type === 'genre') {
+                // 切换到分类筛选
+                genreFilterTypeBtn.classList.add('active');
+                artistFilterTypeBtn.classList.remove('active');
+                genreTagsContainer.style.display = '';
+                artistTagsContainer.style.display = 'none';
+                filterPlaceholder.textContent = '选择或搜索分类标签...';
+                
+                // 显示分类选择
+                updateSelectedGenres();
+            } else {
+                // 切换到艺术家筛选
+                genreFilterTypeBtn.classList.remove('active');
+                artistFilterTypeBtn.classList.add('active');
+                genreTagsContainer.style.display = 'none';
+                artistTagsContainer.style.display = '';
+                filterPlaceholder.textContent = '选择或搜索艺术家...';
+                
+                // 显示艺术家选择
+                updateSelectedArtists();
+            }
+            
+            // 清空搜索框
+            genreSearchInput.value = '';
+        }
+        
+        // 筛选音乐
+        function filterMusic() {
+            const musicApp = document.getElementById('music-app').__vue__;
+            const searchQuery = musicApp.searchQuery.toLowerCase();
+            const statusFilter = musicApp.filterStatus;
+            
+            // 获取选中的分类和艺术家
+            const selectedGenres = Array.from(document.querySelectorAll('.genre-checkbox:checked'))
+                .map(checkbox => checkbox.value);
+            
+            const selectedArtists = Array.from(document.querySelectorAll('.artist-checkbox:checked'))
+                .map(checkbox => checkbox.value);
+            
+            const allMusic = document.querySelectorAll('.music-item');
+            
+            allMusic.forEach(music => {
+                const album = music.dataset.album.toLowerCase();
+                const artist = music.dataset.artist.toLowerCase();
+                const status = music.dataset.status;
+                const genres = music.dataset.genre ? music.dataset.genre.split(',').map(g => g.trim().toLowerCase()) : [];
+                
+                // 搜索匹配 (标题或艺术家)
+                const matchesSearch = !searchQuery || 
+                    album.includes(searchQuery) || 
+                    artist.includes(searchQuery);
+                
+                // 状态匹配
+                const matchesStatus = !statusFilter || status === statusFilter;
+                
+                // 分类匹配 (必须匹配所有选定的分类标签)
+                let matchesGenre = selectedGenres.length === 0; // 如果没有选中分类，则默认匹配
+                
+                if (!matchesGenre) {
+                    // 检查音乐是否包含所有选定的分类
+                    matchesGenre = selectedGenres.every(filter => {
+                        // 查找音乐的任一分类是否包含此过滤标签
+                        return genres.some(musicGenre => musicGenre.includes(filter.toLowerCase()));
+                    });
+                }
+                
+                // 艺术家匹配
+                let matchesArtist = selectedArtists.length === 0; // 如果没有选中艺术家，则默认匹配
+                
+                if (!matchesArtist) {
+                    // 检查音乐的艺术家是否匹配任一选中的艺术家
+                    matchesArtist = selectedArtists.some(selectedArtist => 
+                        artist === selectedArtist.toLowerCase()
+                    );
+                }
+                
+                // 应用筛选
+                if (matchesSearch && matchesStatus && 
+                   ((currentFilterType === 'genre' && matchesGenre) || 
+                    (currentFilterType === 'author' && matchesArtist))) {
+                    music.style.display = '';
+                } else {
+                    music.style.display = 'none';
+                }
+            });
+        }
+        
+        // 事件监听器
+        genreFilter.addEventListener('click', showDropdown);
+        genreSearchBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (genreDropdown.classList.contains('show')) {
+                hideDropdown();
+            } else {
+                showDropdown();
+            }
+        });
+        
+        genreSearchInput.addEventListener('input', function() {
+            filterTags(this.value);
+        });
+        
+        genreSearchInput.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+        
+        clearFilterBtn.addEventListener('click', function() {
+            clearFilterSelection();
+        });
+        
+        // 筛选类型切换事件
+        genreFilterTypeBtn.addEventListener('click', function() {
+            if (!this.classList.contains('active')) {
+                switchFilterType('genre');
+            }
+        });
+        
+        artistFilterTypeBtn.addEventListener('click', function() {
+            if (!this.classList.contains('active')) {
+                switchFilterType('author');
+            }
+        });
+        
+        genreCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateSelectedGenres();
+            });
+        });
+        
+        artistCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateSelectedArtists();
+            });
+        });
+    }
+
+    // 为按钮添加事件监听
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始化筛选器
+        initializeFilters();
+        
+        // 删除按钮处理
+        document.querySelectorAll('.delete-music-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const musicId = this.getAttribute('data-id');
+                deleteMusic(musicId);
+            });
+        });
+        
+        // 详情按钮处理
+        document.querySelectorAll('.details-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const musicId = this.getAttribute('data-id');
+                viewMusicDetails(musicId);
+            });
+        });
+        
+        // 表格排序功能
+        document.querySelectorAll('th.sortable').forEach(header => {
+            header.addEventListener('click', function() {
+                const field = this.getAttribute('data-sort');
+                let direction = this.getAttribute('data-direction') || 'asc';
+                
+                // 切换排序方向
+                direction = direction === 'asc' ? 'desc' : 'asc';
+                
+                // 重置所有表头的排序方向
+                document.querySelectorAll('th.sortable').forEach(th => {
+                    th.removeAttribute('data-direction');
+                });
+                
+                // 设置当前表头的排序方向
+                this.setAttribute('data-direction', direction);
+                
+                // 获取表格和行
+                const table = this.closest('table');
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr.music-item:not([style*="display: none"])'));
+                
+                // 排序行
+                rows.sort((a, b) => {
+                    let valueA, valueB;
+                    
+                    if (field === 'album') {
+                        valueA = a.dataset.album;
+                        valueB = b.dataset.album;
+                    } else if (field === 'artist') {
+                        valueA = a.dataset.artist;
+                        valueB = b.dataset.artist;
+                    } else if (field === 'year') {
+                        valueA = parseInt(a.dataset.year) || 0;
+                        valueB = parseInt(b.dataset.year) || 0;
+                        return direction === 'asc' ? valueA - valueB : valueB - valueA;
+                    } else if (field === 'rating') {
+                        valueA = parseFloat(a.dataset.rating) || 0;
+                        valueB = parseFloat(b.dataset.rating) || 0;
+                        return direction === 'asc' ? valueA - valueB : valueB - valueA;
+                    }
+                    
+                    // 对于字符串类型，使用 localeCompare 进行比较
+                    if (typeof valueA === 'string' && typeof valueB === 'string') {
+                        return direction === 'asc' 
+                            ? valueA.localeCompare(valueB) 
+                            : valueB.localeCompare(valueA);
+                    }
+                    
+                    return 0;
+                });
+                
+                // 重新添加排序后的行
+                rows.forEach(row => tbody.appendChild(row));
+            });
+        });
+        
+        // 视图切换
+        document.querySelectorAll('.view-toggle .btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const viewType = this.getAttribute('data-view');
+                
+                // 更新按钮状态
+                document.querySelectorAll('.view-toggle .btn').forEach(b => {
+                    b.classList.remove('active');
+                });
+                this.classList.add('active');
+                
+                // 更新视图
+                const container = document.querySelector('.media-container');
+                container.className = 'media-container ' + viewType + '-view';
+                
+                // 显示/隐藏相应内容
+                document.querySelectorAll('.view-content').forEach(content => {
+                    content.style.display = 'none';
+                });
+                document.querySelector('.' + viewType + '-content').style.display = '';
+                
+                // 保存偏好
+                localStorage.setItem('preferredView', viewType);
+            });
+        });
+        
+        // 初始化视图
+        const preferredView = localStorage.getItem('preferredView') || 'grid';
+        document.querySelector(`.view-toggle .btn[data-view="${preferredView}"]`).click();
+    });
+</script>
+{% endblock %}

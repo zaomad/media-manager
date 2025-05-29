@@ -1,0 +1,122 @@
+<div class="card-body">
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.csrf_token }}
+        
+        <div class="form-group">
+            {{ form.album.label(class="form-control-label") }}
+            {% if form.album.errors %}
+                {{ form.album(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.album.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {{ form.album(class="form-control", required=true) }}
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            {{ form.artist.label(class="form-control-label") }}
+            {% if form.artist.errors %}
+                {{ form.artist(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.artist.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {{ form.artist(class="form-control", required=true) }}
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            {{ form.year.label(class="form-control-label") }}
+            {% if form.year.errors %}
+                {{ form.year(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.year.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {{ form.year(class="form-control") }}
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            {{ form.genre.label(class="form-control-label") }}
+            {% if form.genre.errors %}
+                {{ form.genre(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.genre.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {{ form.genre(class="form-control") }}
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            {{ form.cover.label(class="form-control-label") }}
+            {% if form.cover.errors %}
+                {{ form.cover(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.cover.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {{ form.cover(class="form-control") }}
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            {{ form.rating.label(class="form-control-label") }}
+            {% if form.rating.errors %}
+                {{ form.rating(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.rating.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {{ form.rating(class="form-control") }}
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            {{ form.notes.label(class="form-control-label") }}
+            {% if form.notes.errors %}
+                {{ form.notes(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.notes.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {{ form.notes(class="form-control", rows=4) }}
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            {{ form.file.label(class="form-control-label") }}
+            {% if form.file.errors %}
+                {{ form.file(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.file.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {{ form.file(class="form-control") }}
+            {% endif %}
+        </div>
+        
+        <div class="form-group mt-4">
+            <button type="submit" class="btn btn-primary">提交</button>
+            <a href="{{ url_for('music') }}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+</div> 

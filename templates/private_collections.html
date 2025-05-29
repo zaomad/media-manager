@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block title %}私密精选作品 - 书影音管理{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>私密精选作品</h1>
+    <button class="btn btn-primary" id="add-collection">
+        <i class="bi bi-plus-lg"></i> 添加作品
+    </button>
+</div>
+
+<div class="private-content">
+    <!-- 精选作品展示区 -->
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card collection-card">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-lock-fill"></i> 私密内容
+                    </div>
+                    <span class="badge bg-danger">限制级</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <img src="https://via.placeholder.com/300x400" class="img-fluid rounded" alt="作品封面">
+                        </div>
+                        <div class="col-md-7">
+                            <h4 class="card-title">精选作品标题 1</h4>
+                            <p class="card-text text-muted">作者：某某艺术家</p>
+                            <p class="card-text">这是一段关于这个精选作品的描述，介绍其内容、风格和特点...</p>
+                            <div class="d-flex mb-3">
+                                <span class="badge bg-secondary me-2">类型标签1</span>
+                                <span class="badge bg-secondary me-2">类型标签2</span>
+                                <span class="badge bg-secondary">类型标签3</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="rating">
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                    <i class="bi bi-star text-warning"></i>
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> 查看详情
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="card collection-card">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-lock-fill"></i> 私密内容
+                    </div>
+                    <span class="badge bg-warning text-dark">成人内容</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <img src="https://via.placeholder.com/300x400" class="img-fluid rounded" alt="作品封面">
+                        </div>
+                        <div class="col-md-7">
+                            <h4 class="card-title">精选作品标题 2</h4>
+                            <p class="card-text text-muted">作者：某某艺术家</p>
+                            <p class="card-text">这是一段关于这个精选作品的描述，介绍其内容、风格和特点...</p>
+                            <div class="d-flex mb-3">
+                                <span class="badge bg-secondary me-2">类型标签1</span>
+                                <span class="badge bg-secondary me-2">类型标签2</span>
+                                <span class="badge bg-secondary">类型标签3</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="rating">
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                    <i class="bi bi-star-half text-warning"></i>
+                                    <i class="bi bi-star text-warning"></i>
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> 查看详情
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 作品集分类 -->
+    <div class="mt-5">
+        <h3 class="mb-4">作品集分类</h3>
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card collection-category-card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="category-icon-container me-3">
+                                <i class="bi bi-image category-icon"></i>
+                            </div>
+                            <div>
+                                <h5 class="card-title mb-1">摄影作品</h5>
+                                <p class="card-text text-muted mb-0">15 个作品</p>
+                            </div>
+                            <div class="ms-auto">
+                                <i class="bi bi-chevron-right"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="card collection-category-card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="category-icon-container me-3">
+                                <i class="bi bi-brush category-icon"></i>
+                            </div>
+                            <div>
+                                <h5 class="card-title mb-1">绘画作品</h5>
+                                <p class="card-text text-muted mb-0">23 个作品</p>
+                            </div>
+                            <div class="ms-auto">
+                                <i class="bi bi-chevron-right"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="card collection-category-card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="category-icon-container me-3">
+                                <i class="bi bi-camera-reels category-icon"></i>
+                            </div>
+                            <div>
+                                <h5 class="card-title mb-1">影像作品</h5>
+                                <p class="card-text text-muted mb-0">8 个作品</p>
+                            </div>
+                            <div class="ms-auto">
+                                <i class="bi bi-chevron-right"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 最近添加 -->
+    <div class="mt-5">
+        <h3 class="mb-4">最近添加</h3>
+        <div class="row">
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                <div class="card recent-card h-100">
+                    <img src="https://via.placeholder.com/300x300" class="card-img-top" alt="最近添加作品">
+                    <div class="card-body">
+                        <h5 class="card-title">作品标题 1</h5>
+                        <p class="card-text"><small class="text-muted">添加于 2023-12-15</small></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                <div class="card recent-card h-100">
+                    <img src="https://via.placeholder.com/300x300" class="card-img-top" alt="最近添加作品">
+                    <div class="card-body">
+                        <h5 class="card-title">作品标题 2</h5>
+                        <p class="card-text"><small class="text-muted">添加于 2023-12-10</small></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                <div class="card recent-card h-100">
+                    <img src="https://via.placeholder.com/300x300" class="card-img-top" alt="最近添加作品">
+                    <div class="card-body">
+                        <h5 class="card-title">作品标题 3</h5>
+                        <p class="card-text"><small class="text-muted">添加于 2023-12-05</small></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                <div class="card recent-card h-100">
+                    <img src="https://via.placeholder.com/300x300" class="card-img-top" alt="最近添加作品">
+                    <div class="card-body">
+                        <h5 class="card-title">作品标题 4</h5>
+                        <p class="card-text"><small class="text-muted">添加于 2023-12-01</small></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 密码验证模态框 -->
+<div class="modal fade" id="passwordModal" tabindex="-1" aria-labelledby="passwordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="passwordModalLabel">
+                    <i class="bi bi-shield-lock"></i> 验证访问权限
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>请输入访问密码以查看私密内容：</p>
+                <div class="input-group mb-3">
+                    <span class="input-group-text">
+                        <i class="bi bi-key"></i>
+                    </span>
+                    <input type="password" class="form-control" id="access-password" placeholder="请输入密码">
+                </div>
+                <div class="alert alert-danger d-none" id="password-error">
+                    密码错误，请重试！
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="verify-password">验证</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+    .collection-card {
+        transition: transform 0.3s ease;
+        margin-bottom: 20px;
+    }
+    
+    .collection-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .collection-category-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-radius: 10px;
+    }
+    
+    .collection-category-card:hover {
+        background-color: #f8f9fa;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .category-icon-container {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .category-icon {
+        font-size: 1.5rem;
+        color: #6c757d;
+    }
+    
+    .recent-card {
+        transition: transform 0.3s ease;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .recent-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .recent-card img {
+        height: 180px;
+        object-fit: cover;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 页面加载时显示密码验证模态框
+    document.addEventListener('DOMContentLoaded', function() {
+        const passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
+        passwordModal.show();
+    });
+    
+    // 验证密码
+    document.getElementById('verify-password').addEventListener('click', function() {
+        const password = document.getElementById('access-password').value;
+        const errorAlert = document.getElementById('password-error');
+        
+        // 这里应该是一个安全的服务器端验证
+        // 这里仅作为示例，实际应用中应该使用更安全的方法
+        if (password === '123456') {
+            // 密码正确，关闭模态框
+            const passwordModal = bootstrap.Modal.getInstance(document.getElementById('passwordModal'));
+            passwordModal.hide();
+        } else {
+            // 密码错误，显示错误信息
+            errorAlert.classList.remove('d-none');
+        }
+    });
+    
+    // 添加作品按钮
+    document.getElementById('add-collection').addEventListener('click', function() {
+        alert('添加作品功能将在未来版本中推出');
+    });
+    
+    // 分类卡片点击事件
+    document.querySelectorAll('.collection-category-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const category = this.querySelector('.card-title').textContent;
+            alert('查看' + category + '分类的功能将在未来版本中推出');
+        });
+    });
+    
+    // 查看详情按钮
+    document.querySelectorAll('.card-body .btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const title = this.closest('.card').querySelector('.card-title').textContent;
+            alert('查看"' + title + '"的详情功能将在未来版本中推出');
+        });
+    });
+</script>
+{% endblock %} 

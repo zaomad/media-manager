@@ -1,0 +1,174 @@
+/* ... existing code ... */
+
+/* 黑夜模式筛选栏样式调整 */
+.dark-mode .filter-container {
+    background-color: #2d2d2d;
+}
+
+.dark-mode .filter-option {
+    color: #e1e1e1;
+}
+
+.dark-mode .filter-option:hover,
+.dark-mode .filter-option.active {
+    background-color: #444;
+    color: #fff;
+}
+
+.dark-mode .search-input {
+    background-color: #333;
+    color: #e1e1e1;
+    border-color: #555;
+}
+
+.dark-mode .search-input::placeholder {
+    color: #999;
+}
+
+.dark-mode .checkbox-label {
+    color: #e1e1e1;
+}
+
+/* 隐藏电影和音乐页面的排序选择容器 */
+.select-container {
+    display: none;
+}
+
+/* 统一筛选器样式 */
+.filter-container {
+    margin-bottom: 15px;
+    position: relative;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+}
+
+.genre-filter-container {
+    position: relative;
+    width: 100%;
+}
+
+.genre-input-container {
+    position: relative;
+}
+
+.genre-input {
+    min-height: 38px;
+    height: auto;
+    padding: 0.375rem 40px 0.375rem 0.75rem;
+    cursor: pointer;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+}
+
+.genre-input-placeholder {
+    color: #6c757d;
+}
+
+.genre-search-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    z-index: 5;
+}
+
+.genre-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    padding: 0.5rem;
+    display: none;
+}
+
+.genre-dropdown-menu.show {
+    display: block;
+}
+
+.genre-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.genre-checkbox, .director-radio, .cast-checkbox, .artist-checkbox {
+    display: none;
+}
+
+.genre-label {
+    display: inline-block;
+    padding: 5px 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.genre-checkbox:checked + .genre-label, 
+.director-radio:checked + .genre-label, 
+.cast-checkbox:checked + .genre-label,
+.artist-checkbox:checked + .genre-label {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+.selected-genre-tag {
+    display: inline-flex;
+    align-items: center;
+    background-color: #e9ecef;
+    border-radius: 16px;
+    padding: 2px 8px;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    font-size: 0.85rem;
+}
+
+.selected-genre-tag .remove-genre {
+    margin-left: 5px;
+    cursor: pointer;
+    color: #6c757d;
+}
+
+.selected-genre-tag .remove-genre:hover {
+    color: #dc3545;
+}
+
+/* 根据开发者工具找到的实际类名修改 */
+.dark-mode .actual-filter-class-name {
+    background-color: #2d2d2d;
+    color: #e1e1e1;
+}
+
+.dark-mode .actual-search-input-class-name {
+    background-color: #333;
+    color: #e1e1e1;
+    border-color: #555;
+}
+
+.dark-mode .actual-checkbox-label-class-name {
+    color: #e1e1e1;
+}
+
+/* 可能还需要针对特定元素设置样式 */
+.dark-mode .actual-filter-class-name input,
+.dark-mode .actual-filter-class-name select {
+    background-color: #333;
+    color: #e1e1e1;
+}
+
+/* ... existing code ... */ 
