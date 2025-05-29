@@ -2,7 +2,7 @@
 
 ## 1. 项目概述与目的
 
-本项目是一个基于 Flask 框架开发的个人媒体收藏管理系统，旨在为用户提供一个简单、高效的方式来管理他们的书籍、电影和音乐收藏。系统采用模块化设计，使用 JSON 文件作为数据存储，并提供了完整的 CRUD 操作接口。
+本项目是一个基于 Flask 框架开发的个人媒体收藏管理系统，旨在为用户提供一个简单、高效的方式来管理他们的书籍、电影和音乐收藏。系统采用模块化设计，使用 JSON 文件作为数据存储，并提供了完整的 CRUD 操作接口。此外，系统还支持 WebDAV 同步功能，实现多设备间的数据共享与备份。
 
 ## 2. 总体架构设计
 
@@ -19,7 +19,7 @@
 ```
 +------------------+     +------------------+     +------------------+
 |    前端界面      |     |    Flask应用     |     |    数据存储      |
-|  (HTML/CSS/JS)   |<--->|  (Python/Flask)  |<--->|    (JSON文件)    |
+|  (HTML/CSS/JS)   |<--->|  (Python/Flask)  |<--->|  (JSON/WebDAV)   |
 +------------------+     +------------------+     +------------------+
 ```
 
@@ -30,6 +30,9 @@
 ```python
 from flask import Flask
 import os
+import threading
+import time
+import logging
 
 app = Flask(__name__, 
             static_folder='../static',
@@ -39,7 +42,44 @@ app = Flask(__name__,
 os.makedirs('../data', exist_ok=True)
 
 # 设置密钥以便flash消息能够正常工作
-app.secret_key = os.environ.get('SECRET_KEY', 'development_secret_key_123456789')
+app.secret_key = os.urandom(24)
+
+# 配置日志
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# 自动同步线程
+def auto_sync_thread():
+    """后台线程，定期自动同步数据"""
+    from app.config import get_config
+    from app.webdav_sync import sync_data
+    
+    while True:
+        try:
+            # 获取配置
+            config = get_config()
+            webdav_config = config.get('webdav', {})
+            
+            # 检查是否启用了WebDAV同步
+            if webdav_config.get('enabled', False):
+                # 获取同步间隔
+                sync_interval = webdav_config.get('sync_interval', 3600)
+                
+                # 执行同步
+                sync_data(force=False)
+            else:
+                # 如果未启用，使用更长的间隔
+                sync_interval = 3600
+                
+            # 等待下一次同步
+            time.sleep(sync_interval)
+        except Exception as e:
+            # 发生错误时，等待一段时间后重试
+            time.sleep(300)  # 5分钟后重试
+
+# 启动自动同步线程
+sync_thread = threading.Thread(target=auto_sync_thread, daemon=True)
+sync_thread.start()
 
 from app import routes
 ```
@@ -49,6 +89,8 @@ from app import routes
 - 配置静态文件和模板目录
 - 初始化数据存储目录
 - 设置应用密钥
+- 配置日志系统
+- 启动自动同步后台线程
 
 ### 3.2 路由模块 (`app/routes.py`)
 
@@ -63,6 +105,8 @@ from app import routes
 - `/movies`: 电影管理
 - `/music`: 音乐管理
 - `/search`: 搜索功能
+- `/settings`: 系统设置
+- `/sync`: WebDAV 同步
 
 ### 3.3 数据模型 (`app/models.py`)
 
@@ -83,6 +127,32 @@ from app import routes
 - 处理数据转换
 - 实现辅助方法
 
+### 3.5 配置管理 (`app/config.py`)
+
+主要职责：
+- 管理系统配置
+- 加载和保存配置
+- 提供配置访问接口
+
+核心功能：
+- `load_config()`: 加载配置文件
+- `save_config()`: 保存配置文件
+- `update_config()`: 更新配置项
+- `get_config()`: 获取配置项
+
+### 3.6 WebDAV 同步 (`app/webdav_sync.py`)
+
+主要职责：
+- 实现数据云端同步
+- 管理备份和恢复
+- 处理同步冲突
+
+核心功能：
+- `sync_data()`: 执行数据同步
+- `create_zip_backup()`: 创建数据备份
+- `extract_zip_backup()`: 恢复数据备份
+- `test_connection()`: 测试 WebDAV 连接
+
 ## 4. 数据流与交互
 
 ### 4.1 数据流程
@@ -97,11 +167,17 @@ from app import routes
    用户输入 -> 数据验证 -> JSON序列化 -> 文件存储 -> 数据读取 -> 展示
    ```
 
+3. 数据同步流程：
+   ```
+   本地数据 -> ZIP打包 -> WebDAV上传 -> 云端存储 -> WebDAV下载 -> 本地解压 -> 数据更新
+   ```
+
 ### 4.2 模块间通信
 
 - 路由模块与模型模块：通过函数调用
 - 模型模块与数据存储：通过文件 I/O
 - 前端与后端：通过 HTTP 请求/响应
+- 本地与云端：通过 WebDAV 协议
 
 ## 5. 核心逻辑与算法
 
@@ -116,6 +192,12 @@ from app import routes
 - 输入数据验证
 - 类型检查
 - 必填字段验证
+
+### 5.3 同步算法
+
+- 基于时间戳的冲突检测
+- 增量同步策略
+- 自动备份机制
 
 ## 6. 数据存储设计
 
@@ -145,6 +227,22 @@ from app import routes
 - 写入：全量写入
 - 更新：读取-修改-写入
 
+### 6.3 配置文件结构
+
+```json
+{
+  "webdav": {
+    "enabled": false,
+    "url": "",
+    "username": "",
+    "password": "",
+    "remote_path": "/media-manager/",
+    "sync_interval": 3600,
+    "last_sync": null
+  }
+}
+```
+
 ## 7. 错误处理与日志
 
 ### 7.1 错误处理机制
@@ -156,8 +254,8 @@ from app import routes
 ### 7.2 日志系统
 
 - 使用 Python 的 logging 模块
-- 记录关键操作
-- 错误追踪
+- 记录关键操作和错误
+- 同步状态跟踪
 
 ## 8. 测试策略
 
@@ -183,6 +281,7 @@ Jinja2==3.0.1
 itsdangerous==2.0.1
 click==8.0.1
 MarkupSafe==2.0.1
+webdav3.client
 ```
 
 ### 9.2 依赖说明
@@ -193,6 +292,7 @@ MarkupSafe==2.0.1
 - itsdangerous: 安全相关
 - click: 命令行接口
 - MarkupSafe: 安全标记
+- webdav3.client: WebDAV 客户端库
 
 ## 10. 部署与运维
 
@@ -201,12 +301,14 @@ MarkupSafe==2.0.1
 - Python 3.8+
 - 足够的磁盘空间
 - 现代网页浏览器
+- WebDAV 服务（可选）
 
 ### 10.2 性能优化
 
 - 数据缓存
 - 延迟加载
 - 分页处理
+- 异步同步操作
 
 ## 11. 已知问题与未来改进
 
@@ -215,13 +317,15 @@ MarkupSafe==2.0.1
 - JSON 文件存储的性能限制
 - 并发访问问题
 - 数据备份机制
+- 同步冲突处理
 
 ### 11.2 改进方向
 
 - 迁移到数据库存储
 - 添加用户认证
-- 实现数据导入导出
 - 优化搜索性能
+- 增强同步冲突解决
+- 改进用户界面
 
 ## 12. 扩展与贡献指南
 
