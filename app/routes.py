@@ -663,7 +663,22 @@ import logging
 import sys
 import threading
 from app.config import get_config, update_config
-from app.webdav_sync import sync_data, test_connection, get_available_backups
+
+# 尝试导入WebDAV同步功能
+try:
+    from app.webdav_sync import sync_data, test_connection, get_available_backups
+    WEBDAV_AVAILABLE = True
+except ImportError:
+    WEBDAV_AVAILABLE = False
+    # 创建空函数以避免调用错误
+    def sync_data(*args, **kwargs):
+        return False
+    
+    def test_connection(*args, **kwargs):
+        return False, "WebDAV功能不可用，请安装webdavclient3库"
+    
+    def get_available_backups(*args, **kwargs):
+        return []
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -697,7 +712,8 @@ def settings():
                           config=config, 
                           data_dir=data_dir, 
                           config_dir=config_dir,
-                          stats=stats)
+                          stats=stats,
+                          webdav_available=WEBDAV_AVAILABLE)
 
 # WebDAV设置保存
 @app.route('/settings/webdav/save', methods=['POST'])

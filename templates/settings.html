@@ -112,12 +112,21 @@
                         <span>WebDAV同步设置</span>
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" id="webdavEnabled" name="webdav_enabled" 
-                                   {% if config.webdav.enabled %}checked{% endif %}>
+                                   {% if config.webdav.enabled and webdav_available %}checked{% endif %}
+                                   {% if not webdav_available %}disabled{% endif %}>
                             <label class="form-check-label text-white" for="webdavEnabled">启用</label>
                         </div>
                     </div>
                 </div>
                 <div class="card-body">
+                    {% if not webdav_available %}
+                    <div class="alert alert-warning mb-3">
+                        <i class="bi bi-exclamation-triangle-fill"></i> WebDAV功能不可用。请安装 webdavclient3 库以启用此功能。
+                        <br>
+                        <code>pip install webdavclient3==3.14.6</code>
+                    </div>
+                    {% endif %}
+                    
                     <form id="webdavForm" method="POST" action="{{ url_for('save_webdav_settings') }}">
                         <div class="row mb-3">
                             <div class="col-md-6">
@@ -240,9 +249,26 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // WebDAV是否可用
+        const webdavAvailable = {% if webdav_available %}true{% else %}false{% endif %};
+        
         // WebDAV启用开关
         const webdavEnabled = document.getElementById('webdavEnabled');
         const webdavForm = document.getElementById('webdavForm');
+        
+        // 测试连接按钮
+        const testConnectionBtn = document.getElementById('testConnection');
+        
+        // 上传和下载按钮
+        const uploadNowBtn = document.getElementById('uploadNow');
+        const downloadNowBtn = document.getElementById('downloadNow');
+        
+        // 如果WebDAV不可用，禁用所有相关按钮
+        if (!webdavAvailable) {
+            testConnectionBtn.disabled = true;
+            uploadNowBtn.disabled = true;
+            downloadNowBtn.disabled = true;
+        }
         
         // 备份选择相关元素
         const backupListContainer = document.getElementById('backupListContainer');
@@ -256,7 +282,7 @@
         // 启用/禁用表单
         function toggleFormFields() {
             const formFields = webdavForm.querySelectorAll('input:not(#webdavEnabled), button');
-            const isEnabled = webdavEnabled.checked;
+            const isEnabled = webdavEnabled.checked && webdavAvailable;
             
             formFields.forEach(field => {
                 field.disabled = !isEnabled;
@@ -268,6 +294,11 @@
         
         // 监听启用开关变化
         webdavEnabled.addEventListener('change', function() {
+            if (!webdavAvailable) {
+                showSyncStatus('error', 'WebDAV功能不可用，请安装webdavclient3库');
+                return;
+            }
+            
             toggleFormFields();
             
             // 发送AJAX请求更新启用状态
@@ -293,8 +324,12 @@
         });
         
         // 测试连接按钮
-        const testConnectionBtn = document.getElementById('testConnection');
         testConnectionBtn.addEventListener('click', function() {
+            if (!webdavAvailable) {
+                showSyncStatus('error', 'WebDAV功能不可用，请安装webdavclient3库');
+                return;
+            }
+            
             testConnectionBtn.disabled = true;
             testConnectionBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 测试中...';
             
@@ -334,8 +369,12 @@
         });
         
         // 上传按钮
-        const uploadNowBtn = document.getElementById('uploadNow');
         uploadNowBtn.addEventListener('click', function() {
+            if (!webdavAvailable) {
+                showSyncStatus('error', 'WebDAV功能不可用，请安装webdavclient3库');
+                return;
+            }
+            
             uploadNowBtn.disabled = true;
             uploadNowBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 上传中...';
             
@@ -369,8 +408,12 @@
         });
         
         // 下载按钮 - 显示备份列表
-        const downloadNowBtn = document.getElementById('downloadNow');
         downloadNowBtn.addEventListener('click', function() {
+            if (!webdavAvailable) {
+                showSyncStatus('error', 'WebDAV功能不可用，请安装webdavclient3库');
+                return;
+            }
+            
             // 获取备份列表
             downloadNowBtn.disabled = true;
             downloadNowBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 获取备份...';
