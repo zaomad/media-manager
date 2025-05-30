@@ -83,17 +83,17 @@
                                     <label for="rating" class="form-label">评分</label>
                                     <select class="form-select" id="rating" name="rating">
                                         <option value="" {% if not music or not music.rating %}selected{% endif %}>未评分</option>
-                                        <option value="0" {% if music and music.rating == '0' %}selected{% endif %}>☆☆☆☆☆ (0分)</option>
-                                        <option value="0.5" {% if music and music.rating == '0.5' %}selected{% endif %}>½☆☆☆☆ (0.5分)</option>
-                                        <option value="1" {% if music and music.rating == '1' %}selected{% endif %}>★☆☆☆☆ (1分)</option>
-                                        <option value="1.5" {% if music and music.rating == '1.5' %}selected{% endif %}>★½☆☆☆ (1.5分)</option>
-                                        <option value="2" {% if music and music.rating == '2' %}selected{% endif %}>★★☆☆☆ (2分)</option>
-                                        <option value="2.5" {% if music and music.rating == '2.5' %}selected{% endif %}>★★½☆☆ (2.5分)</option>
-                                        <option value="3" {% if music and music.rating == '3' %}selected{% endif %}>★★★☆☆ (3分)</option>
-                                        <option value="3.5" {% if music and music.rating == '3.5' %}selected{% endif %}>★★★½☆ (3.5分)</option>
-                                        <option value="4" {% if music and music.rating == '4' %}selected{% endif %}>★★★★☆ (4分)</option>
-                                        <option value="4.5" {% if music and music.rating == '4.5' %}selected{% endif %}>★★★★½ (4.5分)</option>
-                                        <option value="5" {% if music and music.rating == '5' %}selected{% endif %}>★★★★★ (5分)</option>
+                                        <option value="0" {% if music and music.rating == 0 %}selected{% endif %}>☆☆☆☆☆ (0分)</option>
+                                        <option value="0.5" {% if music and music.rating == 0.5 %}selected{% endif %}>½☆☆☆☆ (0.5分)</option>
+                                        <option value="1" {% if music and music.rating == 1 %}selected{% endif %}>★☆☆☆☆ (1分)</option>
+                                        <option value="1.5" {% if music and music.rating == 1.5 %}selected{% endif %}>★½☆☆☆ (1.5分)</option>
+                                        <option value="2" {% if music and music.rating == 2 %}selected{% endif %}>★★☆☆☆ (2分)</option>
+                                        <option value="2.5" {% if music and music.rating == 2.5 %}selected{% endif %}>★★½☆☆ (2.5分)</option>
+                                        <option value="3" {% if music and music.rating == 3 %}selected{% endif %}>★★★☆☆ (3分)</option>
+                                        <option value="3.5" {% if music and music.rating == 3.5 %}selected{% endif %}>★★★½☆ (3.5分)</option>
+                                        <option value="4" {% if music and music.rating == 4 %}selected{% endif %}>★★★★☆ (4分)</option>
+                                        <option value="4.5" {% if music and music.rating == 4.5 %}selected{% endif %}>★★★★½ (4.5分)</option>
+                                        <option value="5" {% if music and music.rating == 5 %}selected{% endif %}>★★★★★ (5分)</option>
                                     </select>
                                 </div>
                             </div>

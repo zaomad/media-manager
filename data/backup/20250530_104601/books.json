@@ -1,0 +1,53 @@
+[
+    {
+        "title": "悉达多",
+        "author": "[德]黑塞",
+        "year": "1999",
+        "genre": "文学",
+        "cover_url": "https://t4.picb.cc/2025/05/29/n6YaaX.jpg",
+        "description": "悉达多",
+        "rating": 4.5,
+        "status": "read",
+        "notes": "荒原狼",
+        "is_owned": true,
+        "is_favorite": false,
+        "added_date": "2025-05-29",
+        "id": "2f4c91e3-9e60-4275-9216-8e8d10538c86",
+        "created_at": "2025-05-29T01:08:52.834105",
+        "updated_at": "2025-05-29T01:08:52.834125"
+    },
+    {
+        "title": "血清素",
+        "author": "[法]维勒贝克",
+        "year": "2003",
+        "genre": "文学",
+        "cover_url": "",
+        "description": "",
+        "rating": 4,
+        "status": "read",
+        "notes": "",
+        "is_owned": true,
+        "is_favorite": false,
+        "added_date": "2025-05-29",
+        "id": "3300d09d-4681-43e8-b6a4-ca5a4a078c88",
+        "created_at": "2025-05-29T01:09:31.837124",
+        "updated_at": "2025-05-29T01:09:31.837142"
+    },
+    {
+        "title": "黄金时代",
+        "author": "[中]王小波",
+        "year": "2006",
+        "genre": "中国, 小说",
+        "cover_url": "",
+        "description": "",
+        "rating": 5,
+        "status": "reading",
+        "notes": "",
+        "is_owned": true,
+        "is_favorite": false,
+        "added_date": "2025-05-29",
+        "id": "89291cb8-e30f-46a1-a061-eb52d2751858",
+        "created_at": "2025-05-29T01:10:45.173593",
+        "updated_at": "2025-05-29T01:10:45.173649"
+    }
+]

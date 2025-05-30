@@ -76,7 +76,7 @@
                                 </div>
                                 <div class="mb-3">
                                     <label for="year" class="form-label">出版年份</label>
-                                    <input type="number" class="form-control" id="year" name="year" value="{{ book.year if book else '' }}" min="1000" max="{{ now.year }}">
+                                    <input type="number" class="form-control" id="year" name="year" value="{{ book.publish_date if book else '' }}" min="1000" max="{{ now.year }}">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">分类</label>

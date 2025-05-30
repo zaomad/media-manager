@@ -82,7 +82,7 @@ def create_zip_backup(backup_path):
     """创建数据文件的ZIP备份"""
     try:
         # 数据文件列表
-        data_files = ['books.json', 'movies.json', 'music.json']
+        data_files = ['books.json', 'movies.json', 'music.json', 'media_manager.db']
         
         # 创建ZIP文件
         with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -108,7 +108,7 @@ def extract_zip_backup(zip_path, target_dir):
         os.makedirs(backup_dir, exist_ok=True)
         
         # 备份现有数据文件
-        data_files = ['books.json', 'movies.json', 'music.json']
+        data_files = ['books.json', 'movies.json', 'music.json', 'media_manager.db']
         for file in data_files:
             file_path = os.path.join(target_dir, file)
             if os.path.exists(file_path):

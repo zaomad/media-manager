@@ -334,9 +334,8 @@
                     data-title="{{ book.title|lower }}" 
                     data-author="{{ book.author|lower }}" 
                     data-status="{{ book.status }}"
-                    data-year="{{ book.year }}"
-                    data-genre="{{ book.genre|lower }}"
-                    data-rating="{{ book.rating }}">
+                    data-year="{{ book.publish_date }}"
+                    data-genre="{{ book.tags|lower if book.tags else '' }}">
                     <div class="card h-100">
                         {% if book.cover_url %}
                         <img src="{{ get_image_url(book.cover_url, 'grid') }}" class="card-img-top" alt="{{ book.title }}" style="height: 300px; object-fit: cover;">
@@ -349,8 +348,8 @@
                             <h5 class="card-title">{{ book.title }}</h5>
                             <h6 class="card-subtitle mb-2 text-muted">{{ book.author }}</h6>
                             <p class="card-text">
-                                {% if book.year %}<small class="text-muted">{{ book.year }}</small>{% endif %}
-                                {% if book.genre %}<small class="text-muted">{{ book.genre }}</small>{% endif %}
+                                {% if book.publish_date %}<small class="text-muted">{{ book.publish_date }}</small>{% endif %}
+                                {% if book.tags %}<small class="text-muted">{{ book.tags }}</small>{% endif %}
                             </p>
                             {% if book.rating %}
                             <div class="mb-2">
@@ -408,9 +407,8 @@
                      data-title="{{ book.title|lower }}" 
                      data-author="{{ book.author|lower }}" 
                      data-status="{{ book.status }}"
-                     data-year="{{ book.year }}"
-                     data-genre="{{ book.genre|lower }}"
-                     data-rating="{{ book.rating }}">
+                     data-year="{{ book.publish_date }}"
+                     data-genre="{{ book.tags|lower if book.tags else '' }}">
                     <div class="media-row">
                         {% if book.cover_url %}
                         <img src="{{ get_image_url(book.cover_url, 'list') }}" class="media-thumbnail" alt="{{ book.title }}">
@@ -423,8 +421,8 @@
                             <div class="media-title">{{ book.title }}</div>
                             <div class="media-info">
                                 <span>{{ book.author }}</span>
-                                {% if book.year %} · <span>{{ book.year }}</span>{% endif %}
-                                {% if book.genre %} · <span>{{ book.genre }}</span>{% endif %}
+                                {% if book.publish_date %} · <span>{{ book.publish_date }}</span>{% endif %}
+                                {% if book.tags %} · <span>{{ book.tags }}</span>{% endif %}
                                 <span class="badge ms-2 {% if book.status == 'read' %}bg-success{% elif book.status == 'reading' %}bg-warning{% else %}bg-secondary{% endif %}">
                                     {% if book.status == 'read' %}已读
                                     {% elif book.status == 'reading' %}在读
@@ -491,9 +489,8 @@
                             data-title="{{ book.title|lower }}" 
                             data-author="{{ book.author|lower }}" 
                             data-status="{{ book.status }}"
-                            data-year="{{ book.year }}"
-                            data-genre="{{ book.genre|lower }}"
-                            data-rating="{{ book.rating }}">
+                            data-year="{{ book.publish_date }}"
+                            data-genre="{{ book.tags|lower if book.tags else '' }}">
                             <td>
                                 {% if book.cover_url %}
                                 <img src="{{ get_image_url(book.cover_url, 'table') }}" class="media-thumbnail" alt="{{ book.title }}">
@@ -505,8 +502,8 @@
                             </td>
                             <td>{{ book.title }}</td>
                             <td>{{ book.author }}</td>
-                            <td>{{ book.year }}</td>
-                            <td>{{ book.genre }}</td>
+                            <td>{{ book.publish_date }}</td>
+                            <td>{{ book.tags }}</td>
                             <td>
                                 <span class="badge {% if book.status == 'read' %}bg-success{% elif book.status == 'reading' %}bg-warning{% else %}bg-secondary{% endif %}">
                                     {% if book.status == 'read' %}已读

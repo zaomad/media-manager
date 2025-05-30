@@ -79,8 +79,11 @@
     .genre-tag-item, .author-tag-item {
         margin-bottom: 5px;
     }
-    .genre-checkbox, .author-checkbox {
-        display: none;
+    .genre-checkbox, .author-checkbox, .author-radio {
+        display: none !important;
+        opacity: 0;
+        position: absolute;
+        pointer-events: none;
     }
     .genre-label, .author-label {
         display: inline-block;
@@ -92,7 +95,7 @@
         transition: all 0.2s;
         font-size: 0.9rem;
     }
-    .genre-checkbox:checked + .genre-label, .author-checkbox:checked + .author-label {
+    .genre-checkbox:checked + .genre-label, .author-checkbox:checked + .author-label, .author-radio:checked + .author-label {
         background-color: #0d6efd;
         color: white;
         border-color: #0d6efd;
@@ -190,7 +193,7 @@
                             <div class="row row-cols-3 g-2 w-100">
                                 {% for author in authors %}
                                 <div class="col author-tag-item filter-author-item">
-                                    <input type="checkbox" class="author-checkbox" id="author_{{ loop.index }}" value="{{ author }}">
+                                    <input type="radio" class="author-radio" name="author_filter" id="author_{{ loop.index }}" value="{{ author }}" hidden>
                                     <label class="author-label w-100 text-center" for="author_{{ loop.index }}">{{ author }}</label>
                                 </div>
                                 {% endfor %}
@@ -227,8 +230,9 @@
                     data-title="{{ book.title|lower }}" 
                     data-author="{{ book.author|lower }}" 
                     data-status="{{ book.status }}"
-                    data-year="{{ book.year }}"
-                    data-rating="{{ book.rating }}">
+                    data-year="{{ book.publish_date }}"
+                    data-rating="{{ book.rating }}"
+                    data-genre="{{ book.tags|lower if book.tags else '' }}">
                     <div class="card h-100">
                         {% if book.cover_url %}
                         <img src="{{ get_image_url(book.cover_url, 'grid') }}" class="card-img-top" alt="{{ book.title }}" style="height: 300px; object-fit: cover;">
@@ -241,8 +245,8 @@
                             <h5 class="card-title">{{ book.title }}</h5>
                             <h6 class="card-subtitle mb-2 text-muted">{{ book.author }}</h6>
                             <p class="card-text">
-                                {% if book.year %}<small class="text-muted">{{ book.year }}</small>{% endif %}
-                                {% if book.genre %}<small class="text-muted">{{ book.genre }}</small>{% endif %}
+                                {% if book.publish_date %}<small class="text-muted">{{ book.publish_date }}</small>{% endif %}
+                                {% if book.tags %}<small class="text-muted">{{ book.tags }}</small>{% endif %}
                             </p>
                             {% if book.rating %}
                             <div class="mb-2">
@@ -300,8 +304,9 @@
                      data-title="{{ book.title|lower }}" 
                      data-author="{{ book.author|lower }}" 
                      data-status="{{ book.status }}"
-                     data-year="{{ book.year }}"
-                     data-rating="{{ book.rating }}">
+                     data-year="{{ book.publish_date }}"
+                     data-rating="{{ book.rating }}"
+                     data-genre="{{ book.tags|lower if book.tags else '' }}">
                     <div class="media-row">
                         {% if book.cover_url %}
                         <img src="{{ get_image_url(book.cover_url, 'list') }}" class="media-thumbnail" alt="{{ book.title }}">
@@ -314,8 +319,8 @@
                             <div class="media-title">{{ book.title }}</div>
                             <div class="media-info">
                                 <span>{{ book.author }}</span>
-                                {% if book.year %} · <span>{{ book.year }}</span>{% endif %}
-                                {% if book.genre %} · <span>{{ book.genre }}</span>{% endif %}
+                                {% if book.publish_date %} · <span>{{ book.publish_date }}</span>{% endif %}
+                                {% if book.tags %} · <span>{{ book.tags }}</span>{% endif %}
                                 <span class="badge ms-2 {% if book.status == 'read' %}bg-success{% elif book.status == 'reading' %}bg-warning{% else %}bg-secondary{% endif %}">
                                     {% if book.status == 'read' %}已读
                                     {% elif book.status == 'reading' %}在读
@@ -378,8 +383,9 @@
                             data-title="{{ book.title|lower }}" 
                             data-author="{{ book.author|lower }}" 
                             data-status="{{ book.status }}"
-                            data-year="{{ book.year }}"
-                            data-rating="{{ book.rating }}">
+                            data-year="{{ book.publish_date }}"
+                            data-rating="{{ book.rating }}"
+                            data-genre="{{ book.tags|lower if book.tags else '' }}">
                             <td>
                                 {% if book.cover_url %}
                                 <img src="{{ get_image_url(book.cover_url, 'table') }}" class="media-thumbnail" alt="{{ book.title }}">
@@ -391,8 +397,8 @@
                             </td>
                             <td>{{ book.title }}</td>
                             <td>{{ book.author }}</td>
-                            <td>{{ book.year }}</td>
-                            <td>{{ book.genre }}</td>
+                            <td>{{ book.publish_date }}</td>
+                            <td>{{ book.tags }}</td>
                             <td>
                                 <span class="badge {% if book.status == 'read' %}bg-success{% elif book.status == 'reading' %}bg-warning{% else %}bg-secondary{% endif %}">
                                     {% if book.status == 'read' %}已读
@@ -603,28 +609,24 @@
             const existingTags = genreFilter.querySelectorAll('.selected-genre-tag');
             existingTags.forEach(tag => tag.remove());
             
-            selectedAuthors = [];
+            let selectedAuthor = '';
             
-            authorCheckboxes.forEach(checkbox => {
-                if (checkbox.checked) {
-                    const authorValue = checkbox.value;
-                    selectedAuthors.push(authorValue);
-                    
-                    // 创建标签元素
-                    const tag = document.createElement('span');
-                    tag.className = 'selected-genre-tag';
-                    tag.innerHTML = `
-                        ${authorValue}
-                        <span class="remove-genre" data-author="${authorValue}">×</span>
-                    `;
-                    
-                    // 在占位符之前插入标签
-                    genreFilter.insertBefore(tag, filterPlaceholder);
-                }
-            });
-            
-            // 切换占位符的可见性
-            if (selectedAuthors.length > 0) {
+            const checkedRadio = document.querySelector('.author-radio:checked');
+            if (checkedRadio) {
+                selectedAuthor = checkedRadio.value;
+                
+                // 创建标签元素
+                const tag = document.createElement('span');
+                tag.className = 'selected-genre-tag';
+                tag.innerHTML = `
+                    ${selectedAuthor}
+                    <span class="remove-genre" data-author="${selectedAuthor}">×</span>
+                `;
+                
+                // 在占位符之前插入标签
+                genreFilter.insertBefore(tag, filterPlaceholder);
+                
+                // 切换占位符的可见性
                 filterPlaceholder.style.display = 'none';
             } else {
                 filterPlaceholder.style.display = '';
@@ -635,10 +637,13 @@
                 if (btn.dataset.author) {  // 确保这是一个作者标签
                     btn.addEventListener('click', function(e) {
                         e.stopPropagation();
-                        const author = this.dataset.author;
                         
-                        // 取消对应的复选框
-                        document.querySelector(`.author-checkbox[value="${author}"]`).checked = false;
+                        // 取消选中的单选按钮
+                        const checkedRadio = document.querySelector('.author-radio:checked');
+                        if (checkedRadio) {
+                            checkedRadio.checked = false;
+                        }
+                        
                         updateSelectedAuthors();
                         
                         // 实时筛选
@@ -688,9 +693,10 @@
                 });
                 updateSelectedGenres();
             } else {
-                authorCheckboxes.forEach(checkbox => {
-                    checkbox.checked = false;
-                });
+                const checkedRadio = document.querySelector('.author-radio:checked');
+                if (checkedRadio) {
+                    checkedRadio.checked = false;
+                }
                 updateSelectedAuthors();
             }
         }
@@ -735,8 +741,7 @@
             const selectedGenres = Array.from(document.querySelectorAll('.genre-checkbox:checked'))
                 .map(checkbox => checkbox.value);
             
-            const selectedAuthors = Array.from(document.querySelectorAll('.author-checkbox:checked'))
-                .map(checkbox => checkbox.value);
+            const selectedAuthor = document.querySelector('.author-radio:checked')?.value || '';
             
             const allBooks = document.querySelectorAll('.book-item');
             
@@ -744,7 +749,7 @@
                 const title = book.dataset.title.toLowerCase();
                 const author = book.dataset.author.toLowerCase();
                 const status = book.dataset.status;
-                const genres = book.dataset.genre ? book.dataset.genre.split(',').map(g => g.trim().toLowerCase()) : [];
+                const tagsText = book.dataset.genre || '';
                 
                 // 搜索匹配 (标题或作者)
                 const matchesSearch = !searchQuery || 
@@ -760,19 +765,17 @@
                 if (!matchesGenre) {
                     // 检查书籍是否包含所有选定的分类
                     matchesGenre = selectedGenres.every(filter => {
-                        // 查找书籍的任一分类是否包含此过滤标签
-                        return genres.some(bookGenre => bookGenre.includes(filter.toLowerCase()));
+                        // 查找书籍的分类是否包含此过滤标签
+                        return tagsText.toLowerCase().includes(filter.toLowerCase());
                     });
                 }
                 
                 // 作者匹配
-                let matchesAuthor = selectedAuthors.length === 0; // 如果没有选中作者，则默认匹配
+                let matchesAuthor = !selectedAuthor; // 如果没有选中作者，则默认匹配
                 
                 if (!matchesAuthor) {
-                    // 检查书籍作者是否匹配任一选中的作者
-                    matchesAuthor = selectedAuthors.some(selectedAuthor => 
-                        author === selectedAuthor.toLowerCase()
-                    );
+                    // 检查书籍作者是否匹配选中的作者
+                    matchesAuthor = author === selectedAuthor.toLowerCase();
                 }
                 
                 // 应用筛选
@@ -826,8 +829,9 @@
             });
         });
         
-        authorCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
+        const authorRadios = document.querySelectorAll('.author-radio');
+        authorRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
                 updateSelectedAuthors();
             });
         });

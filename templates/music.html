@@ -79,7 +79,7 @@
     .genre-tag-item, .author-tag-item {
         margin-bottom: 5px;
     }
-    .genre-checkbox, .author-checkbox {
+    .genre-checkbox, .author-checkbox, .artist-radio {
         display: none !important;
         opacity: 0;
         position: absolute;
@@ -95,7 +95,7 @@
         transition: all 0.2s;
         font-size: 0.9rem;
     }
-    .genre-checkbox:checked + .genre-label, .author-checkbox:checked + .author-label {
+    .genre-checkbox:checked + .genre-label, .author-checkbox:checked + .author-label, .artist-radio:checked + .author-label {
         background-color: #0d6efd;
         color: white;
         border-color: #0d6efd;
@@ -195,7 +195,7 @@
                             <div class="row row-cols-3 g-2 w-100">
                                 {% for artist in artists %}
                                 <div class="col artist-tag-item filter-artist-item">
-                                    <input type="checkbox" class="artist-checkbox" id="artist_{{ loop.index }}" value="{{ artist }}" hidden>
+                                    <input type="radio" class="artist-radio" name="artist_filter" id="artist_{{ loop.index }}" value="{{ artist }}" hidden>
                                     <label class="author-label w-100 text-center" for="artist_{{ loop.index }}">{{ artist }}</label>
                                 </div>
                                 {% endfor %}
@@ -544,7 +544,7 @@
         const genreSearchInput = document.getElementById('genreSearchInput');
         const clearFilterBtn = document.getElementById('clearFilterBtn');
         const genreCheckboxes = document.querySelectorAll('.genre-checkbox');
-        const artistCheckboxes = document.querySelectorAll('.artist-checkbox');
+        const artistCheckboxes = document.querySelectorAll('.artist-radio');
         
         // 筛选类型切换按钮
         const genreFilterTypeBtn = document.getElementById('genreFilterTypeBtn');
@@ -641,28 +641,24 @@
             const existingTags = genreFilter.querySelectorAll('.selected-genre-tag');
             existingTags.forEach(tag => tag.remove());
             
-            selectedArtists = [];
+            let selectedArtist = '';
             
-            artistCheckboxes.forEach(checkbox => {
-                if (checkbox.checked) {
-                    const artistValue = checkbox.value;
-                    selectedArtists.push(artistValue);
-                    
-                    // 创建标签元素
-                    const tag = document.createElement('span');
-                    tag.className = 'selected-genre-tag';
-                    tag.innerHTML = `
-                        ${artistValue}
-                        <span class="remove-genre" data-artist="${artistValue}">×</span>
-                    `;
-                    
-                    // 在占位符之前插入标签
-                    genreFilter.insertBefore(tag, filterPlaceholder);
-                }
-            });
-            
-            // 切换占位符的可见性
-            if (selectedArtists.length > 0) {
+            const checkedRadio = document.querySelector('.artist-radio:checked');
+            if (checkedRadio) {
+                selectedArtist = checkedRadio.value;
+                
+                // 创建标签元素
+                const tag = document.createElement('span');
+                tag.className = 'selected-genre-tag';
+                tag.innerHTML = `
+                    ${selectedArtist}
+                    <span class="remove-genre" data-artist="${selectedArtist}">×</span>
+                `;
+                
+                // 在占位符之前插入标签
+                genreFilter.insertBefore(tag, filterPlaceholder);
+                
+                // 切换占位符的可见性
                 filterPlaceholder.style.display = 'none';
             } else {
                 filterPlaceholder.style.display = '';
@@ -673,10 +669,13 @@
                 if (btn.dataset.artist) {  // 确保这是一个艺术家标签
                     btn.addEventListener('click', function(e) {
                         e.stopPropagation();
-                        const artist = this.dataset.artist;
                         
-                        // 取消对应的复选框
-                        document.querySelector(`.artist-checkbox[value="${artist}"]`).checked = false;
+                        // 取消选中的单选按钮
+                        const checkedRadio = document.querySelector('.artist-radio:checked');
+                        if (checkedRadio) {
+                            checkedRadio.checked = false;
+                        }
+                        
                         updateSelectedArtists();
                         
                         // 实时筛选
@@ -726,9 +725,10 @@
                 });
                 updateSelectedGenres();
             } else {
-                artistCheckboxes.forEach(checkbox => {
-                    checkbox.checked = false;
-                });
+                const checkedRadio = document.querySelector('.artist-radio:checked');
+                if (checkedRadio) {
+                    checkedRadio.checked = false;
+                }
                 updateSelectedArtists();
             }
         }
@@ -773,8 +773,7 @@
             const selectedGenres = Array.from(document.querySelectorAll('.genre-checkbox:checked'))
                 .map(checkbox => checkbox.value);
             
-            const selectedArtists = Array.from(document.querySelectorAll('.artist-checkbox:checked'))
-                .map(checkbox => checkbox.value);
+            const selectedArtist = document.querySelector('.artist-radio:checked')?.value || '';
             
             const allMusic = document.querySelectorAll('.music-item');
             
@@ -782,9 +781,9 @@
                 const album = music.dataset.album.toLowerCase();
                 const artist = music.dataset.artist.toLowerCase();
                 const status = music.dataset.status;
-                const genres = music.dataset.genre ? music.dataset.genre.split(',').map(g => g.trim().toLowerCase()) : [];
+                const genre = music.dataset.genre.toLowerCase();
                 
-                // 搜索匹配 (标题或艺术家)
+                // 搜索匹配 (专辑名或艺术家)
                 const matchesSearch = !searchQuery || 
                     album.includes(searchQuery) || 
                     artist.includes(searchQuery);
@@ -797,26 +796,21 @@
                 
                 if (!matchesGenre) {
                     // 检查音乐是否包含所有选定的分类
-                    matchesGenre = selectedGenres.every(filter => {
-                        // 查找音乐的任一分类是否包含此过滤标签
-                        return genres.some(musicGenre => musicGenre.includes(filter.toLowerCase()));
-                    });
-                }
-                
-                // 艺术家匹配
-                let matchesArtist = selectedArtists.length === 0; // 如果没有选中艺术家，则默认匹配
-                
-                if (!matchesArtist) {
-                    // 检查音乐的艺术家是否匹配任一选中的艺术家
-                    matchesArtist = selectedArtists.some(selectedArtist => 
-                        artist === selectedArtist.toLowerCase()
+                    matchesGenre = selectedGenres.every(filter => 
+                        genre.includes(filter.toLowerCase())
                     );
                 }
                 
+                // 艺术家匹配
+                let matchesArtist = !selectedArtist; // 如果没有选中艺术家，则默认匹配
+                
+                if (!matchesArtist) {
+                    // 检查音乐艺术家是否匹配选中的艺术家
+                    matchesArtist = artist === selectedArtist.toLowerCase();
+                }
+                
                 // 应用筛选
-                if (matchesSearch && matchesStatus && 
-                   ((currentFilterType === 'genre' && matchesGenre) || 
-                    (currentFilterType === 'author' && matchesArtist))) {
+                if (matchesSearch && matchesStatus && matchesGenre && matchesArtist) {
                     music.style.display = '';
                 } else {
                     music.style.display = 'none';
@@ -866,8 +860,9 @@
             });
         });
         
-        artistCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
+        const artistRadios = document.querySelectorAll('.artist-radio');
+        artistRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
                 updateSelectedArtists();
             });
         });

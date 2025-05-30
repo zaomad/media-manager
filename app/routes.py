@@ -2,12 +2,12 @@ from flask import render_template, request, jsonify, redirect, url_for, flash, s
 from app import app
 from app.models import (get_all_books, get_book, add_book, update_book, delete_book,
                        get_all_movies, get_movie, add_movie, update_movie, delete_movie,
-                       get_all_music, get_music, add_music, update_music, delete_music)
+                       get_all_music, get_music, add_music, update_music, delete_music,
+                       search_books, search_movies, search_music)
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
 import time
-from app.models import save_books
 from app.utils import get_common_genres, get_image_url, format_date
 
 # 配置文件上传
@@ -59,9 +59,9 @@ def books():
     unique_authors = set()
     
     for book in all_books:
-        if book.get('genre'):
+        if book.get('tags'):
             # 分割每本书的分类，并去除首尾空格
-            genres = [g.strip() for g in book.get('genre').split(',')]
+            genres = [g.strip() for g in book.get('tags').split(',')]
             for genre in genres:
                 if genre:  # 确保标签不为空
                     unique_genres.add(genre)
@@ -107,19 +107,22 @@ def add_book_route():
         # 转换为逗号分隔的字符串
         genre_string = ', '.join(sorted(all_genres))
         
+        # 处理是否拥有
+        is_owned = 'is_owned' in request.form
+        
         book_data = {
             'title': request.form.get('title'),
             'author': request.form.get('author'),
-            'year': request.form.get('year'),
-            'genre': genre_string,
-            'cover_url': request.form.get('cover_url'),
-            'description': request.form.get('description'),
-            'rating': rating,
+            'publisher': request.form.get('publisher', ''),
+            'publish_date': request.form.get('year', ''),
             'status': request.form.get('status'),
-            'notes': request.form.get('notes'),
-            'is_owned': request.form.get('is_owned') == 'on',
-            'is_favorite': False,
-            'added_date': datetime.now().strftime('%Y-%m-%d')
+            'rating': rating,
+            'notes': request.form.get('notes', ''),
+            'cover_url': request.form.get('cover_url', ''),
+            'tags': genre_string,
+            'isbn': request.form.get('isbn', ''),
+            'is_owned': is_owned,
+            'description': request.form.get('description', '')
         }
         
         # 处理封面上传
@@ -135,20 +138,20 @@ def add_book_route():
                 file.save(file_path)
                 # 更新书籍封面URL
                 book_data['cover_url'] = f"/uploads/{unique_filename}"
-        elif not book_data.get('cover_url'):
-            # 如果没有上传封面且没有提供URL，确保cover_url为空字符串而不是None
-            book_data['cover_url'] = ''
         
         book_id = add_book(book_data)
-        flash('图书已成功添加！', 'success')
-        return redirect(url_for('books'))
+        if book_id:
+            flash('图书已成功添加！', 'success')
+            return redirect(url_for('books'))
+        else:
+            flash('添加图书失败，请检查输入数据。', 'danger')
     
     # 获取所有唯一的分类标签用于表单复选框
     all_books = get_all_books()
     unique_genres = set()
     for book in all_books:
-        if book.get('genre'):
-            genres = [g.strip() for g in book.get('genre').split(',')]
+        if book.get('tags'):
+            genres = [g.strip() for g in book.get('tags').split(',')]
             for genre in genres:
                 if genre:
                     unique_genres.add(genre)
@@ -178,20 +181,18 @@ def delete_book_route(book_id):
 def toggle_book_favorite(book_id):
     """切换图书收藏状态"""
     try:
-        # 获取所有书籍
-        books = get_all_books()
-        
-        # 查找要修改的书籍
-        book = next((book for book in books if book.get('id') == book_id), None)
+        # 获取书籍
+        book = get_book(book_id)
         
         if book:
             # 切换收藏状态
-            book['is_favorite'] = not book.get('is_favorite', False)
+            is_favorite = not book.get('is_favorite', False)
             
-            # 保存更新后的数据
-            save_books(books)
+            # 更新书籍信息
+            book['is_favorite'] = is_favorite
+            update_book(book_id, book)
             
-            return jsonify({'success': True, 'is_favorite': book['is_favorite']}), 200
+            return jsonify({'success': True, 'is_favorite': is_favorite}), 200
         else:
             return jsonify({'success': False, 'message': '未找到该书籍'}), 404
             
@@ -205,7 +206,7 @@ def edit_book(book_id):
         # 获取表单数据
         title = request.form.get('title')
         author = request.form.get('author')
-        year = request.form.get('year')
+        publish_date = request.form.get('year', '')
         
         # 处理分类标签（包括复选框和自定义输入）
         genre_tags = request.form.getlist('genre_tags')
@@ -219,7 +220,7 @@ def edit_book(book_id):
             all_genres.update(custom_tags)
         
         # 转换为逗号分隔的字符串
-        genre = ', '.join(sorted(all_genres))
+        tags = ', '.join(sorted(all_genres))
         
         status = request.form.get('status')
         rating_value = request.form.get('rating', '')
@@ -228,35 +229,29 @@ def edit_book(book_id):
             rating = float(rating_value)
         except (ValueError, TypeError):
             rating = 0.0
-        description = request.form.get('description', '')
         notes = request.form.get('notes', '')
-        is_owned = request.form.get('is_owned') == 'on'
+        publisher = request.form.get('publisher', '')
+        isbn = request.form.get('isbn', '')
         
-        # 查找要编辑的书籍
-        books = get_all_books()
-        book = next((b for b in books if b.get('id') == book_id), None)
+        # 处理是否拥有
+        is_owned = 'is_owned' in request.form
         
         if book:
-            # 保存旧数据
-            old_added_date = book.get('added_date', '')
-            old_is_favorite = book.get('is_favorite', False)
-            old_cover_url = book.get('cover_url', '')
-            
-            # 更新书籍信息
-            book.update({
+            # 准备更新数据
+            updated_book = book.copy()
+            updated_book.update({
                 'title': title,
                 'author': author,
-                'year': year,
-                'genre': genre,
+                'publish_date': publish_date,
+                'publisher': publisher,
+                'isbn': isbn,
                 'status': status,
                 'rating': rating,
-                'description': description,
                 'notes': notes,
+                'tags': tags,
                 'is_owned': is_owned,
-                # 保留原有字段
-                'added_date': old_added_date,
-                'is_favorite': old_is_favorite,
-                'cover_url': old_cover_url
+                'description': request.form.get('description', ''),
+                'updated_at': datetime.now().isoformat()
             })
             
             # 处理封面上传
@@ -271,16 +266,18 @@ def edit_book(book_id):
                     file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
                     file.save(file_path)
                     # 更新书籍封面URL
-                    book['cover_url'] = f"/uploads/{unique_filename}"
-            elif request.form.get('cover_url') != old_cover_url:
+                    updated_book['cover_url'] = f"/uploads/{unique_filename}"
+            elif request.form.get('cover_url') != book.get('cover_url', ''):
                 # 如果URL已更改，更新封面URL
-                book['cover_url'] = request.form.get('cover_url', '')
+                updated_book['cover_url'] = request.form.get('cover_url', '')
             
-            # 保存到文件
-            save_books(books)
-            
-            flash('图书已成功更新！', 'success')
-            return redirect(url_for('book_detail', book_id=book_id))
+            # 更新数据库
+            if update_book(book_id, updated_book):
+                flash('图书已成功更新！', 'success')
+                return redirect(url_for('book_detail', book_id=book_id))
+            else:
+                flash('更新图书失败。', 'danger')
+                return redirect(url_for('books'))
         
         flash('未找到要编辑的图书。', 'danger')
         return redirect(url_for('books'))
@@ -289,8 +286,8 @@ def edit_book(book_id):
     all_books = get_all_books()
     unique_genres = set()
     for b in all_books:
-        if b.get('genre'):
-            genres = [g.strip() for g in b.get('genre').split(',')]
+        if b.get('tags'):
+            genres = [g.strip() for g in b.get('tags').split(',')]
             for genre in genres:
                 if genre:
                     unique_genres.add(genre)
@@ -298,8 +295,8 @@ def edit_book(book_id):
     
     # 如果当前图书有分类，将其分割为列表
     book_genres = []
-    if book and book.get('genre'):
-        book_genres = [g.strip() for g in book.get('genre').split(',')]
+    if book and book.get('tags'):
+        book_genres = [g.strip() for g in book.get('tags').split(',')]
     
     return render_template('book_form.html', book=book, genres=unique_genres, book_genres=book_genres)
 
@@ -350,49 +347,99 @@ def movie_detail(movie_id):
 @app.route('/movies/add', methods=['GET', 'POST'])
 def add_movie_route():
     if request.method == 'POST':
+        # 获取评分值
+        rating_value = request.form.get('rating', '')
+        try:
+            rating = float(rating_value)
+        except (ValueError, TypeError):
+            rating = 0.0
+            
         movie_data = {
             'title': request.form.get('title'),
             'director': request.form.get('director'),
-            'cast': request.form.get('cast'),
+            'cast': request.form.get('cast', ''),
             'year': request.form.get('year'),
             'genre': request.form.get('genre'),
-            'poster_url': request.form.get('poster_url'),
-            'description': request.form.get('description'),
-            'rating': request.form.get('rating'),
             'status': request.form.get('status'),
-            'notes': request.form.get('notes')
+            'rating': rating,
+            'notes': request.form.get('notes', ''),
+            'poster_url': request.form.get('poster_url', ''),
+            'tags': request.form.get('tags', '')
         }
-        add_movie(movie_data)
-        return redirect(url_for('movies'))
+        
+        # 处理海报上传
+        if 'poster' in request.files and request.files['poster'].filename:
+            file = request.files['poster']
+            if file and allowed_file(file.filename):
+                # 生成安全的文件名
+                filename = secure_filename(file.filename)
+                # 确保文件名唯一
+                unique_filename = f"{int(time.time())}_{filename}"
+                # 保存文件
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                file.save(file_path)
+                # 更新电影海报URL
+                movie_data['poster_url'] = f"/uploads/{unique_filename}"
+        
+        movie_id = add_movie(movie_data)
+        if movie_id:
+            flash('电影已成功添加！', 'success')
+            return redirect(url_for('movies'))
+        else:
+            flash('添加电影失败，请检查输入数据。', 'danger')
+    
     return render_template('movie_form.html')
 
 @app.route('/movies/edit/<string:movie_id>', methods=['GET', 'POST'])
 def edit_movie_route(movie_id):
     movie = get_movie(movie_id)
-    if request.method == 'POST':
-        # 保存原有数据
-        old_created_at = movie.get('created_at', '')
-        old_is_favorite = movie.get('is_favorite', False)
-        
-        movie_data = {
-            'id': movie_id,
+    if request.method == 'POST' and movie:
+        # 获取评分值
+        rating_value = request.form.get('rating', '')
+        try:
+            rating = float(rating_value)
+        except (ValueError, TypeError):
+            rating = 0.0
+            
+        # 准备更新数据
+        updated_movie = movie.copy()
+        updated_movie.update({
             'title': request.form.get('title'),
             'director': request.form.get('director'),
-            'cast': request.form.get('cast'),
             'year': request.form.get('year'),
             'genre': request.form.get('genre'),
-            'poster_url': request.form.get('poster_url'),
-            'description': request.form.get('description'),
-            'rating': request.form.get('rating'),
             'status': request.form.get('status'),
-            'notes': request.form.get('notes'),
-            # 保留原有字段
-            'created_at': old_created_at,
-            'is_favorite': old_is_favorite
-        }
-        update_movie(movie_id, movie_data)
-        flash('电影已成功更新！', 'success')
-        return redirect(url_for('movie_detail', movie_id=movie_id))
+            'cast': request.form.get('cast', ''),
+            'rating': rating,
+            'notes': request.form.get('notes', ''),
+            'tags': request.form.get('tags', ''),
+            'updated_at': datetime.now().isoformat()
+        })
+        
+        # 处理海报上传
+        if 'poster' in request.files and request.files['poster'].filename:
+            file = request.files['poster']
+            if file and allowed_file(file.filename):
+                # 生成安全的文件名
+                filename = secure_filename(file.filename)
+                # 确保文件名唯一
+                unique_filename = f"{int(time.time())}_{filename}"
+                # 保存文件
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                file.save(file_path)
+                # 更新电影海报URL
+                updated_movie['poster_url'] = f"/uploads/{unique_filename}"
+        elif request.form.get('poster_url') != movie.get('poster_url', ''):
+            # 如果URL已更改，更新海报URL
+            updated_movie['poster_url'] = request.form.get('poster_url', '')
+        
+        # 更新数据库
+        if update_movie(movie_id, updated_movie):
+            flash('电影已成功更新！', 'success')
+            return redirect(url_for('movie_detail', movie_id=movie_id))
+        else:
+            flash('更新电影失败。', 'danger')
+            return redirect(url_for('movies'))
     return render_template('movie_form.html', movie=movie)
 
 @app.route('/movies/<string:movie_id>/delete', methods=['POST'])
@@ -449,45 +496,99 @@ def music_detail(music_id):
 @app.route('/music/add', methods=['GET', 'POST'])
 def add_music_route():
     if request.method == 'POST':
+        # 获取评分值
+        rating_value = request.form.get('rating', '')
+        try:
+            rating = float(rating_value)
+        except (ValueError, TypeError):
+            rating = 0.0
+            
         music_data = {
+            'title': request.form.get('album'),  # 使用album作为title
             'album': request.form.get('album'),
             'artist': request.form.get('artist'),
-            'status': request.form.get('status', 'unlistened'),
             'year': request.form.get('year'),
             'genre': request.form.get('genre'),
-            'cover_url': request.form.get('cover_url'),
-            'rating': request.form.get('rating'),
-            'notes': request.form.get('notes')
+            'status': request.form.get('status'),
+            'rating': rating,
+            'notes': request.form.get('notes', ''),
+            'cover_url': request.form.get('cover_url', ''),
+            'tags': request.form.get('tags', '')
         }
-        add_music(music_data)
-        return redirect(url_for('music'))
+        
+        # 处理封面上传
+        if 'cover' in request.files and request.files['cover'].filename:
+            file = request.files['cover']
+            if file and allowed_file(file.filename):
+                # 生成安全的文件名
+                filename = secure_filename(file.filename)
+                # 确保文件名唯一
+                unique_filename = f"{int(time.time())}_{filename}"
+                # 保存文件
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                file.save(file_path)
+                # 更新音乐封面URL
+                music_data['cover_url'] = f"/uploads/{unique_filename}"
+        
+        music_id = add_music(music_data)
+        if music_id:
+            flash('音乐已成功添加！', 'success')
+            return redirect(url_for('music'))
+        else:
+            flash('添加音乐失败，请检查输入数据。', 'danger')
+    
     return render_template('music_form.html')
 
 @app.route('/music/edit/<string:music_id>', methods=['GET', 'POST'])
 def edit_music_route(music_id):
     music_item = get_music(music_id)
-    if request.method == 'POST':
-        # 保存原有数据
-        old_created_at = music_item.get('created_at', '')
-        old_is_favorite = music_item.get('is_favorite', False)
-        
-        music_data = {
-            'id': music_id,
+    if request.method == 'POST' and music_item:
+        # 获取评分值
+        rating_value = request.form.get('rating', '')
+        try:
+            rating = float(rating_value)
+        except (ValueError, TypeError):
+            rating = 0.0
+            
+        # 准备更新数据
+        updated_music = music_item.copy()
+        updated_music.update({
+            'title': request.form.get('album'),  # 使用album作为title
             'album': request.form.get('album'),
             'artist': request.form.get('artist'),
-            'status': request.form.get('status', 'unlistened'),
             'year': request.form.get('year'),
             'genre': request.form.get('genre'),
-            'cover_url': request.form.get('cover_url'),
-            'rating': request.form.get('rating'),
-            'notes': request.form.get('notes'),
-            # 保留原有字段
-            'created_at': old_created_at,
-            'is_favorite': old_is_favorite
-        }
-        update_music(music_id, music_data)
-        flash('音乐已成功更新！', 'success')
-        return redirect(url_for('music_detail', music_id=music_id))
+            'status': request.form.get('status'),
+            'rating': rating,
+            'notes': request.form.get('notes', ''),
+            'tags': request.form.get('tags', ''),
+            'updated_at': datetime.now().isoformat()
+        })
+        
+        # 处理封面上传
+        if 'cover' in request.files and request.files['cover'].filename:
+            file = request.files['cover']
+            if file and allowed_file(file.filename):
+                # 生成安全的文件名
+                filename = secure_filename(file.filename)
+                # 确保文件名唯一
+                unique_filename = f"{int(time.time())}_{filename}"
+                # 保存文件
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                file.save(file_path)
+                # 更新音乐封面URL
+                updated_music['cover_url'] = f"/uploads/{unique_filename}"
+        elif request.form.get('cover_url') != music_item.get('cover_url', ''):
+            # 如果URL已更改，更新封面URL
+            updated_music['cover_url'] = request.form.get('cover_url', '')
+        
+        # 更新数据库
+        if update_music(music_id, updated_music):
+            flash('音乐已成功更新！', 'success')
+            return redirect(url_for('music_detail', music_id=music_id))
+        else:
+            flash('更新音乐失败。', 'danger')
+            return redirect(url_for('music'))
     return render_template('music_form.html', music=music_item)
 
 @app.route('/music/<string:music_id>/delete', methods=['POST'])
@@ -619,14 +720,14 @@ def api_delete_music(music_id):
 def bookshelf():
     # 获取所有书籍，但只显示拥有的书籍
     all_books = get_all_books()
-    owned_books = [book for book in all_books if book.get('is_owned', False)]
+    owned_books = [book for book in all_books if book.get('is_owned')]
     
     # 获取所有书籍中的唯一分类标签（支持逗号分隔的多个标签）
     unique_genres = set()
     for book in all_books:
-        if book.get('genre'):
+        if book.get('tags'):
             # 分割每本书的分类，并去除首尾空格
-            genres = [g.strip() for g in book.get('genre').split(',')]
+            genres = [g.strip() for g in book.get('tags').split(',')]
             for genre in genres:
                 if genre:  # 确保标签不为空
                     unique_genres.add(genre)

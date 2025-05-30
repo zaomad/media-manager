@@ -107,6 +107,7 @@ from app import routes
 - `/search`: 搜索功能
 - `/settings`: 系统设置
 - `/sync`: WebDAV 同步
+- `/bookshelf`: 书架（已拥有的书籍）
 
 ### 3.3 数据模型 (`app/models.py`)
 
@@ -152,6 +153,18 @@ from app import routes
 - `create_zip_backup()`: 创建数据备份
 - `extract_zip_backup()`: 恢复数据备份
 - `test_connection()`: 测试 WebDAV 连接
+
+### 3.7 数据库模式 (`app/database.py`)
+
+主要职责：
+- 定义数据库表结构
+- 初始化数据库
+- 更新数据库架构
+
+核心功能：
+- `init_db()`: 初始化数据库表
+- `update_db_schema()`: 更新数据库表结构
+- `get_db_connection()`: 获取数据库连接
 
 ## 4. 数据流与交互
 
@@ -199,6 +212,78 @@ from app import routes
 - 增量同步策略
 - 自动备份机制
 
+### 5.4 筛选功能实现
+
+#### 5.4.1 按分类筛选
+- 使用复选框实现多选功能
+- 实时筛选更新显示结果
+- 支持搜索和清除筛选
+
+#### 5.4.2 按作者/导演/艺术家筛选
+- 使用单选按钮实现单选功能
+- 选中标签高亮显示
+- 支持清除选择
+- 使用CSS隐藏单选按钮，保持界面美观
+
+#### 5.4.3 筛选器的实现方式
+```javascript
+// 筛选图书
+function filterBooks() {
+    const booksApp = document.getElementById('books-app').__vue__;
+    const searchQuery = booksApp.searchQuery.toLowerCase();
+    const statusFilter = booksApp.filterStatus;
+    
+    // 获取选中的分类和作者
+    const selectedGenres = Array.from(document.querySelectorAll('.genre-checkbox:checked'))
+        .map(checkbox => checkbox.value);
+    
+    const selectedAuthor = document.querySelector('.author-radio:checked')?.value || '';
+    
+    const allBooks = document.querySelectorAll('.book-item');
+    
+    allBooks.forEach(book => {
+        const title = book.dataset.title.toLowerCase();
+        const author = book.dataset.author.toLowerCase();
+        const status = book.dataset.status;
+        const tagsText = book.dataset.genre || '';
+        
+        // 搜索匹配 (标题或作者)
+        const matchesSearch = !searchQuery || 
+            title.includes(searchQuery) || 
+            author.includes(searchQuery);
+        
+        // 状态匹配
+        const matchesStatus = !statusFilter || status === statusFilter;
+        
+        // 分类匹配 (必须匹配所有选定的分类标签)
+        let matchesGenre = selectedGenres.length === 0; // 如果没有选中分类，则默认匹配
+        
+        if (!matchesGenre) {
+            // 检查书籍是否包含所有选定的分类
+            matchesGenre = selectedGenres.every(filter => {
+                // 查找书籍的分类是否包含此过滤标签
+                return tagsText.toLowerCase().includes(filter.toLowerCase());
+            });
+        }
+        
+        // 作者匹配
+        let matchesAuthor = !selectedAuthor; // 如果没有选中作者，则默认匹配
+        
+        if (!matchesAuthor) {
+            // 检查书籍作者是否匹配选中的作者
+            matchesAuthor = author === selectedAuthor.toLowerCase();
+        }
+        
+        // 应用筛选
+        if (matchesSearch && matchesStatus && matchesGenre && matchesAuthor) {
+            book.style.display = '';
+        } else {
+            book.style.display = 'none';
+        }
+    });
+}
+```
+
 ## 6. 数据存储设计
 
 ### 6.1 JSON 文件结构
@@ -213,11 +298,39 @@ from app import routes
       "isbn": "ISBN号",
       "status": "阅读状态",
       "rating": 评分,
+      "notes": "笔记",
+      "tags": "分类标签",
+      "publish_date": "出版日期",
+      "description": "简介",
+      "is_owned": true/false
+    }
+  ],
+  "movies": [
+    {
+      "id": "unique_id",
+      "title": "电影名",
+      "director": "导演",
+      "cast": "主演",
+      "year": "年份",
+      "genre": "类型",
+      "status": "观看状态",
+      "rating": 评分,
       "notes": "笔记"
     }
   ],
-  "movies": [...],
-  "music": [...]
+  "music": [
+    {
+      "id": "unique_id",
+      "title": "标题",
+      "artist": "艺术家",
+      "album": "专辑",
+      "year": "年份",
+      "genre": "类型",
+      "status": "收听状态",
+      "rating": 评分,
+      "notes": "笔记"
+    }
+  ]
 }
 ```
 
@@ -242,6 +355,24 @@ from app import routes
   }
 }
 ```
+
+### 6.4 数据库架构更新
+
+最近对数据库架构进行了以下更新：
+
+1. **书籍表**
+   - 添加 `description` 字段，用于存储书籍简介
+   - 添加 `is_owned` 字段，用于标记是否拥有该书籍
+   - 将 `genre` 字段重命名为 `tags`，用于存储分类标签
+   - 将 `year` 字段重命名为 `publish_date`，用于存储出版日期
+
+2. **电影表**
+   - 添加 `cast` 字段，用于存储主演信息
+
+3. **音乐表**
+   - 添加 `status` 字段，用于存储收听状态
+
+这些更新确保了数据库能够正确存储和检索所有必要的信息，支持新增的功能和修复的问题。
 
 ## 7. 错误处理与日志
 
@@ -326,6 +457,30 @@ webdav3.client
 - 优化搜索性能
 - 增强同步冲突解决
 - 改进用户界面
+
+### 11.3 最近修复的问题
+
+1. **书籍详情页显示问题**
+   - 修复了书籍详情页无法正确显示出版年份和类型信息的问题
+   - 将模板中的 `item.year` 替换为 `item.publish_date`
+   - 将模板中的 `item.genre` 替换为 `item.tags`
+
+2. **书籍简介保存问题**
+   - 添加了数据库中的 `description` 字段
+   - 修改了表单处理逻辑，确保简介信息被正确保存
+
+3. **电影主演信息问题**
+   - 添加了数据库中的 `cast` 字段
+   - 修改了表单处理逻辑，确保主演信息被正确保存和显示
+
+4. **音乐状态保存问题**
+   - 添加了数据库中的 `status` 字段
+   - 修改了表单处理逻辑，确保状态信息被正确保存
+
+5. **筛选功能问题**
+   - 修复了书籍按分类筛选功能
+   - 改进了按作者/导演/艺术家筛选的用户体验
+   - 统一了三个界面的筛选功能实现方式
 
 ## 12. 扩展与贡献指南
 
