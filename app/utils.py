@@ -1,6 +1,8 @@
 import re
 from datetime import datetime
 import os
+from flask import Markup
+from app import app
 
 def format_date(date_str):
     """格式化日期字符串为易读格式"""
@@ -130,3 +132,10 @@ def get_image_url(url, view_mode='grid'):
             url += '_SX80_'   # 缩略图，宽度80px
     
     return url 
+
+@app.template_filter('nl2br')
+def nl2br_filter(s):
+    """将文本中的换行符转换为HTML的<br>标签"""
+    if not s:
+        return ""
+    return Markup(s.replace('\n', '<br>')) 

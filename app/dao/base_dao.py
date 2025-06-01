@@ -54,13 +54,29 @@ class BaseDAO:
             fields_str = ', '.join(fields)
             
             sql = f'INSERT INTO {self.table_name} ({fields_str}) VALUES ({placeholders})'
+            logger.info(f"执行SQL: {sql}")
+            logger.info(f"SQL参数: {list(data.values())}")
+            
             cursor.execute(sql, tuple(data.values()))
             
             conn.commit()
+            logger.info(f"成功创建{self.table_name}记录 ID={data['id']}")
             return True
+        except sqlite3.Error as e:
+            conn.rollback()
+            logger.error(f"创建{self.table_name}记录SQL错误: {e}", exc_info=True)
+            # 记录表结构以便诊断
+            try:
+                cursor = conn.cursor()
+                cursor.execute(f"PRAGMA table_info({self.table_name})")
+                columns = cursor.fetchall()
+                logger.error(f"{self.table_name}表结构: {[dict(col) for col in columns]}")
+            except Exception as e2:
+                logger.error(f"获取表结构失败: {e2}")
+            return False
         except Exception as e:
             conn.rollback()
-            logger.error(f"创建{self.table_name}记录失败: {e}")
+            logger.error(f"创建{self.table_name}记录失败: {e}", exc_info=True)
             return False
         finally:
             conn.close()
@@ -77,10 +93,15 @@ class BaseDAO:
             values.append(id)  # 添加WHERE条件的参数
             
             sql = f'UPDATE {self.table_name} SET {set_clause} WHERE id = ?'
+            logger.info(f"执行SQL: {sql}")
+            logger.info(f"参数值: {values}")
+            
             cursor.execute(sql, tuple(values))
             
             conn.commit()
-            return cursor.rowcount > 0
+            result = cursor.rowcount > 0
+            logger.info(f"更新{self.table_name}记录(ID={id})结果: {result}, 影响行数: {cursor.rowcount}")
+            return result
         except Exception as e:
             conn.rollback()
             logger.error(f"更新{self.table_name}记录(ID={id})失败: {e}")

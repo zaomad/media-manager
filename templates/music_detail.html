@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}{{ music.title }} - 音乐详情{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+<style>
+    .cover-image {
+        max-height: 400px;
+        object-fit: contain;
+    }
+    .rating {
+        color: #ffc107;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">首页</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('music') }}">音乐</a></li>
+                    <li class="breadcrumb-item active">{{ music.title }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            {% if music.cover_url %}
+                <img src="{{ get_image_url(music.cover_url, 'detail') }}" alt="{{ music.title }}" class="img-fluid rounded shadow cover-image">
+            {% else %}
+                <div class="bg-light rounded d-flex align-items-center justify-content-center shadow" style="height: 400px;">
+                    <i class="bi bi-music-note-beamed" style="font-size: 5rem;"></i>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-8">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <h1 class="mb-0">{{ music.title }}</h1>
+                <div>
+                    <a href="{{ url_for('edit_music_route', music_id=music.id) }}" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-pencil"></i> 编辑
+                    </a>
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                        <i class="bi bi-trash"></i> 删除
+                    </button>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                {% if music.rating %}
+                    <div class="rating mb-2">
+                        {% for i in range(1, 6) %}
+                            {% if i <= music.rating|int %}
+                                <i class="bi bi-star-fill"></i>
+                            {% elif i <= music.rating|float|int + 0.5 %}
+                                <i class="bi bi-star-half"></i>
+                            {% else %}
+                                <i class="bi bi-star"></i>
+                            {% endif %}
+                        {% endfor %}
+                        <span class="ms-2 text-muted">{{ music.rating }} / 5</span>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">基本信息</h5>
+                    <table class="table table-borderless">
+                        <tbody>
+                            <tr>
+                                <th scope="row" style="width: 120px;">艺术家</th>
+                                <td>{{ music.artist }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">专辑</th>
+                                <td>{{ music.album }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">发行年份</th>
+                                <td>{{ music.year }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">类型</th>
+                                <td>{{ music.genre }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">状态</th>
+                                <td>
+                                    <span class="badge {% if music.status == '听过' or music.status == '已听' %}bg-success{% elif music.status == '在听' %}bg-warning{% elif music.status == '想听' %}bg-info{% else %}bg-secondary{% endif %}">
+                                        {{ music.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {% if music.tags %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">标签</h5>
+                    <div>
+                        {% for tag in music.tags.split(',') %}
+                            <span class="badge bg-info me-1">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if music.notes %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">笔记</h5>
+                    <p class="card-text">{{ music.notes|nl2br }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认对话框 -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">确认删除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                确定要删除音乐 <strong>{{ music.title }}</strong> 吗？此操作不可恢复。
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form action="{{ url_for('delete_music_route', music_id=music.id) }}" method="post">
+                    <button type="submit" class="btn btn-danger">确认删除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

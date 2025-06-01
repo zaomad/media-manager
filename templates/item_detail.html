@@ -128,14 +128,50 @@
                     <table class="table table-borderless">
                         <tbody>
                             {% if item_type == 'book' %}
+                                {% if item.series %}
+                                <tr>
+                                    <th scope="row" style="width: 120px;">丛书</th>
+                                    <td>{{ item.series }}</td>
+                                </tr>
+                                {% endif %}
                                 <tr>
                                     <th scope="row" style="width: 120px;">作者</th>
                                     <td>{{ item.author }}</td>
                                 </tr>
+                                {% if item.translator %}
+                                <tr>
+                                    <th scope="row">译者</th>
+                                    <td>{{ item.translator }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if item.publisher %}
+                                <tr>
+                                    <th scope="row">出版社</th>
+                                    <td>{{ item.publisher }}</td>
+                                </tr>
+                                {% endif %}
                                 <tr>
                                     <th scope="row">出版年份</th>
-                                    <td>{{ item.publish_date }}</td>
+                                    <td>{{ item.datePublished or item.publish_date }}</td>
                                 </tr>
+                                {% if item.isbn %}
+                                <tr>
+                                    <th scope="row">ISBN</th>
+                                    <td>{{ item.isbn }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if item.totalPage %}
+                                <tr>
+                                    <th scope="row">页数</th>
+                                    <td>{{ item.totalPage }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if item.price %}
+                                <tr>
+                                    <th scope="row">定价</th>
+                                    <td>{{ item.price }}</td>
+                                </tr>
+                                {% endif %}
                                 <tr>
                                     <th scope="row">类型</th>
                                     <td>{{ item.tags }}</td>
@@ -143,8 +179,10 @@
                                 <tr>
                                     <th scope="row">状态</th>
                                     <td>
-                                        <span class="badge {% if item.status == 'read' %}bg-success{% elif item.status == 'reading' %}bg-warning{% else %}bg-secondary{% endif %}">
-                                            {% if item.status == 'read' %}已读
+                                        <span class="badge {% if item.state == '读过' or item.status == 'read' %}bg-success{% elif item.state == '在读' or item.status == 'reading' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                            {% if item.state %}
+                                                {{ item.state }}
+                                            {% elif item.status == 'read' %}已读
                                             {% elif item.status == 'reading' %}在读
                                             {% else %}未读
                                             {% endif %}
@@ -206,11 +244,11 @@
                 </div>
             </div>
 
-            {% if item.description %}
+            {% if item.description or item.desc %}
             <div class="card mb-4">
                 <div class="card-body">
                     <h5 class="card-title">简介</h5>
-                    <p class="card-text">{{ item.description }}</p>
+                    <p class="card-text">{{ item.desc or item.description }}</p>
                 </div>
             </div>
             {% endif %}

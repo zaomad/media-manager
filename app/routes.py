@@ -9,6 +9,11 @@ import os
 from werkzeug.utils import secure_filename
 import time
 from app.utils import get_common_genres, get_image_url, format_date
+# 导入豆瓣服务
+from app.douban.service import DoubanService
+
+# 初始化豆瓣服务
+douban_service = DoubanService()
 
 # 配置文件上传
 UPLOAD_FOLDER = 'static/uploads'
@@ -51,36 +56,70 @@ def index():
 
 @app.route('/books')
 def books():
-    all_books = get_all_books()
+    books = get_all_books()
     
-    # 获取所有书籍中的唯一分类标签
-    unique_genres = set()
-    # 获取所有书籍中的唯一作者
-    unique_authors = set()
-    
-    for book in all_books:
-        if book.get('tags'):
-            # 分割每本书的分类，并去除首尾空格
-            genres = [g.strip() for g in book.get('tags').split(',')]
-            for genre in genres:
-                if genre:  # 确保标签不为空
-                    unique_genres.add(genre)
+    # 处理状态显示
+    for book in books:
+        # 打印原始状态值，帮助调试
+        logger.info(f"图书页面 - 原始状态值: {book.get('status')}")
         
+        # 将旧的状态值映射到新的状态值
+        if book.get('status') == 'unread':
+            book['status'] = '未读'
+        elif book.get('status') == 'reading':
+            book['status'] = '在读'
+        elif book.get('status') == 'read':
+            book['status'] = '读过'
+        # 确保"想读"、"在读"和"读过"状态保持不变
+        elif book.get('status') != '想读' and book.get('status') != '在读' and book.get('status') != '读过' and book.get('status') != '未读':
+            # 如果状态不是已知的中文状态，则默认设为"未读"
+            logger.info(f"图书页面 - 状态值不是已知的中文状态，设为未读: {book.get('status')}")
+            book['status'] = '未读'
+        
+        # 打印处理后的状态值，帮助调试
+        logger.info(f"图书页面 - 处理后状态值: {book.get('status')}")
+    
+    # 获取所有唯一的分类标签
+    all_genres = set()
+    for book in books:
+        if book.get('tags'):
+            genres = [tag.strip() for tag in book['tags'].split(',')]
+            all_genres.update(genres)
+    
+    # 获取所有唯一的作者
+    all_authors = set()
+    for book in books:
         if book.get('author'):
-            author = book.get('author').strip()
-            if author:  # 确保作者不为空
-                unique_authors.add(author)
+            all_authors.add(book['author'])
     
-    # 将集合转换为排序列表
-    unique_genres = sorted(list(unique_genres))
-    unique_authors = sorted(list(unique_authors))
-    
-    return render_template('books.html', books=all_books, genres=unique_genres, authors=unique_authors)
+    return render_template('books.html', books=books, genres=sorted(all_genres), authors=sorted(all_authors))
 
 @app.route('/books/<string:book_id>')
 def book_detail(book_id):
     book = get_book(book_id)
-    return render_template('item_detail.html', item=book, item_type='book')
+    if not book:
+        abort(404)
+    
+    # 打印原始状态值，帮助调试
+    logger.info(f"书籍详情页 - 原始状态值: {book.get('status')}")
+    
+    # 处理状态显示
+    if book.get('status') == 'unread':
+        book['status'] = '未读'
+    elif book.get('status') == 'reading':
+        book['status'] = '在读'
+    elif book.get('status') == 'read':
+        book['status'] = '读过'
+    # 确保"想读"状态保持不变
+    elif book.get('status') != '想读' and book.get('status') != '在读' and book.get('status') != '读过' and book.get('status') != '未读':
+        # 如果状态不是已知的中文状态，则默认设为"未读"
+        logger.info(f"书籍详情页 - 状态值不是已知的中文状态，设为未读: {book.get('status')}")
+        book['status'] = '未读'
+    
+    # 打印处理后的状态值，帮助调试
+    logger.info(f"书籍详情页 - 处理后状态值: {book.get('status')}")
+    
+    return render_template('book_detail.html', book=book)
 
 @app.route('/books/add', methods=['GET', 'POST'])
 def add_book_route():
@@ -122,7 +161,11 @@ def add_book_route():
             'tags': genre_string,
             'isbn': request.form.get('isbn', ''),
             'is_owned': is_owned,
-            'description': request.form.get('description', '')
+            'description': request.form.get('description', ''),
+            'translator': request.form.get('translator', ''),
+            'series': request.form.get('series', ''),
+            'page_count': request.form.get('page_count', ''),
+            'price': request.form.get('price', '')
         }
         
         # 处理封面上传
@@ -157,7 +200,28 @@ def add_book_route():
                     unique_genres.add(genre)
     unique_genres = sorted(list(unique_genres))
     
-    return render_template('book_form.html', genres=unique_genres)
+    # 创建空的book对象，避免模板中的book变量未定义错误
+    empty_book = {
+        'title': '',
+        'author': '',
+        'publisher': '',
+        'publish_date': '',
+        'status': '未读',
+        'rating': 0,
+        'notes': '',
+        'cover_url': '',
+        'tags': '',
+        'isbn': '',
+        'is_owned': False,
+        'description': '',
+        'translator': '',
+        'series': '',
+        'page_count': '',
+        'price': '',
+        'id': None  # 确保id为None，表示这是新书
+    }
+    
+    return render_template('book_form.html', genres=unique_genres, book=empty_book, book_genres=[], title="添加书籍")
 
 @app.route('/books/<string:book_id>/delete', methods=['POST'])
 def delete_book_route(book_id):
@@ -202,6 +266,21 @@ def toggle_book_favorite(book_id):
 @app.route('/books/<string:book_id>/edit', methods=['GET', 'POST'])
 def edit_book(book_id):
     book = get_book(book_id)
+    
+    # 在GET请求时，确保状态显示正确
+    if request.method == 'GET' and book:
+        # 处理状态显示
+        if book.get('status') == 'unread':
+            book['status'] = '未读'
+        elif book.get('status') == 'reading':
+            book['status'] = '在读'
+        elif book.get('status') == 'read':
+            book['status'] = '读过'
+        # 确保"想读"状态保持不变
+        elif book.get('status') != '想读':
+            # 如果状态不是已知的中文状态，则默认设为"未读"
+            book['status'] = '未读'
+    
     if request.method == 'POST':
         # 获取表单数据
         title = request.form.get('title')
@@ -222,127 +301,146 @@ def edit_book(book_id):
         # 转换为逗号分隔的字符串
         tags = ', '.join(sorted(all_genres))
         
+        # 获取状态值，直接使用表单中的值，不进行额外转换
         status = request.form.get('status')
-        rating_value = request.form.get('rating', '')
-        # 确保评分值是浮点数
+        # 如果状态不是有效的选项之一，则设为默认值"未读"
+        if status not in ['未读', '想读', '在读', '读过']:
+            status = '未读'
+        
+        # 处理评分
+        rating_str = request.form.get('rating', '0')
         try:
-            rating = float(rating_value)
-        except (ValueError, TypeError):
-            rating = 0.0
-        notes = request.form.get('notes', '')
-        publisher = request.form.get('publisher', '')
-        isbn = request.form.get('isbn', '')
+            rating = float(rating_str)
+            # 确保评分在0-5之间
+            rating = max(0, min(5, rating))
+            # 保留一位小数，但不进行四舍五入到0.5
+            rating = round(rating * 10) / 10  # 四舍五入到小数点后一位
+        except ValueError:
+            rating = 0
         
         # 处理是否拥有
-        is_owned = 'is_owned' in request.form
+        is_owned = 1 if request.form.get('is_owned') else 0
         
-        if book:
-            # 准备更新数据
-            updated_book = book.copy()
-            updated_book.update({
-                'title': title,
-                'author': author,
-                'publish_date': publish_date,
-                'publisher': publisher,
-                'isbn': isbn,
-                'status': status,
-                'rating': rating,
-                'notes': notes,
-                'tags': tags,
-                'is_owned': is_owned,
-                'description': request.form.get('description', ''),
-                'updated_at': datetime.now().isoformat()
-            })
-            
-            # 处理封面上传
-            if 'cover' in request.files and request.files['cover'].filename:
-                file = request.files['cover']
-                if file and allowed_file(file.filename):
-                    # 生成安全的文件名
-                    filename = secure_filename(file.filename)
-                    # 确保文件名唯一
-                    unique_filename = f"{int(time.time())}_{filename}"
-                    # 保存文件
-                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-                    file.save(file_path)
-                    # 更新书籍封面URL
-                    updated_book['cover_url'] = f"/uploads/{unique_filename}"
-            elif request.form.get('cover_url') != book.get('cover_url', ''):
-                # 如果URL已更改，更新封面URL
-                updated_book['cover_url'] = request.form.get('cover_url', '')
-            
-            # 更新数据库
-            if update_book(book_id, updated_book):
-                flash('图书已成功更新！', 'success')
-                return redirect(url_for('book_detail', book_id=book_id))
-            else:
-                flash('更新图书失败。', 'danger')
-                return redirect(url_for('books'))
+        # 创建图书数据字典
+        book_data = {
+            'title': title,
+            'author': author,
+            'publisher': request.form.get('publisher', ''),
+            'publish_date': publish_date,
+            'status': status,  # 直接使用表单中的状态值
+            'rating': rating,
+            'notes': request.form.get('notes', ''),
+            'cover_url': request.form.get('cover_url', ''),
+            'tags': tags,
+            'isbn': request.form.get('isbn', ''),
+            'is_owned': is_owned,
+            'description': request.form.get('description', ''),
+            'translator': request.form.get('translator', ''),
+            'series': request.form.get('series', ''),
+            'page_count': request.form.get('page_count', ''),
+            'price': request.form.get('price', '')
+        }
         
-        flash('未找到要编辑的图书。', 'danger')
-        return redirect(url_for('books'))
+        # 更新图书信息
+        update_book(book_id, book_data)
+        
+        flash('图书更新成功！', 'success')
+        return redirect(url_for('book_detail', book_id=book_id))
     
-    # 获取所有唯一的分类标签用于表单复选框
-    all_books = get_all_books()
+    # 获取所有唯一的分类标签
     unique_genres = set()
+    all_books = get_all_books()
     for b in all_books:
         if b.get('tags'):
-            genres = [g.strip() for g in b.get('tags').split(',')]
-            for genre in genres:
-                if genre:
-                    unique_genres.add(genre)
-    unique_genres = sorted(list(unique_genres))
+            genres = [tag.strip() for tag in b['tags'].split(',')]
+            unique_genres.update(genres)
     
-    # 如果当前图书有分类，将其分割为列表
+    # 获取图书的分类标签
     book_genres = []
     if book and book.get('tags'):
-        book_genres = [g.strip() for g in book.get('tags').split(',')]
+        book_genres = [tag.strip() for tag in book['tags'].split(',')]
     
-    return render_template('book_form.html', book=book, genres=unique_genres, book_genres=book_genres)
+    return render_template('book_form.html', genres=sorted(unique_genres), book=book, book_genres=book_genres, title="编辑书籍")
 
 @app.route('/movies')
 def movies():
-    all_movies = get_all_movies()
+    """电影页面"""
+    movies = get_all_movies()
     
-    # 获取所有电影中的唯一分类标签
-    unique_genres = set()
-    # 获取所有电影中的唯一导演
-    unique_directors = set()
-    # 获取所有电影中的唯一演员
-    unique_actors = set()
-    
-    for movie in all_movies:
-        if movie.get('genre'):
-            # 分割每部电影的分类，并去除首尾空格
-            genres = [g.strip() for g in movie.get('genre').split(',')]
-            for genre in genres:
-                if genre:  # 确保标签不为空
-                    unique_genres.add(genre)
+    # 处理状态显示
+    for movie in movies:
+        # 打印原始状态值，帮助调试
+        logger.info(f"电影页面 - 原始状态值: {movie.get('status')}")
         
+        # 将英文状态值映射到中文状态值
+        if movie.get('status') == 'watched':
+            movie['status'] = '已看'
+        elif movie.get('status') == 'watching':
+            movie['status'] = '想看'
+        elif movie.get('status') == 'wanting':
+            movie['status'] = '想看'
+        elif movie.get('status') == 'unwatched':
+            movie['status'] = '未看'
+        # 确保中文状态保持不变
+        elif movie.get('status') != '已看' and movie.get('status') != '想看' and movie.get('status') != '未看':
+            # 如果状态不是已知的中文状态，则默认设为"未看"
+            logger.info(f"电影页面 - 状态值不是已知的中文状态，设为未看: {movie.get('status')}")
+            movie['status'] = '未看'
+        
+        # 打印处理后的状态值，帮助调试
+        logger.info(f"电影页面 - 处理后状态值: {movie.get('status')}")
+    
+    # 获取所有导演
+    directors = set()
+    for movie in movies:
         if movie.get('director'):
-            director = movie.get('director').strip()
-            if director:  # 确保导演不为空
-                unique_directors.add(director)
-        
+            directors.add(movie['director'])
+    
+    # 获取所有演员
+    actors = set()
+    for movie in movies:
         if movie.get('cast'):
-            # 分割每部电影的演员，并去除首尾空格
-            actors = [a.strip() for a in movie.get('cast').split(',')]
-            for actor in actors:
-                if actor:  # 确保演员不为空
-                    unique_actors.add(actor)
+            cast_list = [actor.strip() for actor in movie['cast'].split(',')]
+            actors.update(cast_list)
     
-    # 将集合转换为排序列表
-    unique_genres = sorted(list(unique_genres))
-    unique_directors = sorted(list(unique_directors))
-    unique_actors = sorted(list(unique_actors))
+    # 获取所有电影分类
+    genres = set()
+    for movie in movies:
+        if movie.get('genre'):
+            genre_list = [genre.strip() for genre in movie['genre'].split(',')]
+            genres.update(genre_list)
     
-    return render_template('movies.html', movies=all_movies, genres=unique_genres, 
-                           directors=unique_directors, actors=unique_actors)
+    return render_template('movies.html', movies=movies, genres=sorted(genres), directors=sorted(directors), actors=sorted(actors))
 
 @app.route('/movies/<string:movie_id>')
 def movie_detail(movie_id):
+    """电影详情页面"""
     movie = get_movie(movie_id)
-    return render_template('item_detail.html', item=movie, item_type='movie')
+    if not movie:
+        abort(404)
+    
+    # 打印原始状态值，帮助调试
+    logger.info(f"电影详情页 - 原始状态值: {movie.get('status')}")
+    
+    # 将英文状态值映射到中文状态值
+    if movie.get('status') == 'watched':
+        movie['status'] = '已看'
+    elif movie.get('status') == 'watching':
+        movie['status'] = '想看'
+    elif movie.get('status') == 'wanting':
+        movie['status'] = '想看'
+    elif movie.get('status') == 'unwatched':
+        movie['status'] = '未看'
+    # 确保中文状态保持不变
+    elif movie.get('status') != '已看' and movie.get('status') != '想看' and movie.get('status') != '未看':
+        # 如果状态不是已知的中文状态，则默认设为"未看"
+        logger.info(f"电影详情页 - 状态值不是已知的中文状态，设为未看: {movie.get('status')}")
+        movie['status'] = '未看'
+    
+    # 打印处理后的状态值，帮助调试
+    logger.info(f"电影详情页 - 处理后状态值: {movie.get('status')}")
+    
+    return render_template('movie_detail.html', movie=movie)
 
 @app.route('/movies/add', methods=['GET', 'POST'])
 def add_movie_route():
@@ -462,36 +560,82 @@ def delete_movie_route(movie_id):
 
 @app.route('/music')
 def music():
-    all_music = get_all_music()
+    """音乐页面"""
+    musics = get_all_music()
     
-    # 获取所有音乐中的唯一分类标签
-    unique_genres = set()
-    # 获取所有音乐中的唯一艺术家
-    unique_artists = set()
-    
-    for music_item in all_music:
-        if music_item.get('genre'):
-            # 分割每首音乐的分类，并去除首尾空格
-            genres = [g.strip() for g in music_item.get('genre').split(',')]
-            for genre in genres:
-                if genre:  # 确保标签不为空
-                    unique_genres.add(genre)
+    # 处理状态显示
+    for music in musics:
+        # 打印原始状态值，帮助调试
+        logger.info(f"音乐页面 - 原始状态值: {music.get('status')}")
         
-        if music_item.get('artist'):
-            artist = music_item.get('artist').strip()
-            if artist:  # 确保艺术家不为空
-                unique_artists.add(artist)
+        # 将英文状态值映射到中文状态值
+        if music.get('status') == 'listened':
+            music['status'] = '已听'
+        elif music.get('status') == 'listening':
+            music['status'] = '想听'
+        elif music.get('status') == 'wanting':
+            music['status'] = '想听'
+        elif music.get('status') == 'unlistened':
+            music['status'] = '未听'
+        # 确保中文状态保持不变
+        elif music.get('status') != '已听' and music.get('status') != '想听' and music.get('status') != '未听':
+            # 如果状态不是已知的中文状态，则默认设为"未听"
+            logger.info(f"音乐页面 - 状态值不是已知的中文状态，设为未听: {music.get('status')}")
+            music['status'] = '未听'
+        
+        # 打印处理后的状态值，帮助调试
+        logger.info(f"音乐页面 - 处理后状态值: {music.get('status')}")
     
-    # 将集合转换为排序列表
-    unique_genres = sorted(list(unique_genres))
-    unique_artists = sorted(list(unique_artists))
+    # 获取所有艺术家
+    artists = set()
+    for music in musics:
+        if music.get('artist'):
+            artists.add(music['artist'])
     
-    return render_template('music.html', musics=all_music, genres=unique_genres, artists=unique_artists)
+    # 获取所有专辑
+    albums = set()
+    for music in musics:
+        if music.get('album'):
+            albums.add(music['album'])
+    
+    # 获取所有音乐分类
+    genres = set()
+    for music in musics:
+        if music.get('genre'):
+            genre_list = [genre.strip() for genre in music['genre'].split(',')]
+            genres.update(genre_list)
+    
+    return render_template('music.html', musics=musics, genres=sorted(genres), artists=sorted(artists), albums=sorted(albums))
 
 @app.route('/music/<string:music_id>')
 def music_detail(music_id):
-    music_item = get_music(music_id)
-    return render_template('item_detail.html', item=music_item, item_type='music')
+    """音乐详情页面"""
+    music = get_music(music_id)
+    if not music:
+        abort(404)
+    
+    # 打印原始状态值，帮助调试
+    logger.info(f"音乐详情页 - 原始状态值: {music.get('status')}")
+    
+    # 将英文状态值映射到中文状态值
+    if music.get('status') == 'listened':
+        music['status'] = '已听'
+    elif music.get('status') == 'listening':
+        music['status'] = '想听'
+    elif music.get('status') == 'wanting':
+        music['status'] = '想听'
+    elif music.get('status') == 'unlistened':
+        music['status'] = '未听'
+    # 确保中文状态保持不变
+    elif music.get('status') != '已听' and music.get('status') != '想听' and music.get('status') != '未听':
+        # 如果状态不是已知的中文状态，则默认设为"未听"
+        logger.info(f"音乐详情页 - 状态值不是已知的中文状态，设为未听: {music.get('status')}")
+        music['status'] = '未听'
+    
+    # 打印处理后的状态值，帮助调试
+    logger.info(f"音乐详情页 - 处理后状态值: {music.get('status')}")
+    
+    return render_template('music_detail.html', music=music)
 
 @app.route('/music/add', methods=['GET', 'POST'])
 def add_music_route():
@@ -721,6 +865,27 @@ def bookshelf():
     # 获取所有书籍，但只显示拥有的书籍
     all_books = get_all_books()
     owned_books = [book for book in all_books if book.get('is_owned')]
+    
+    # 处理状态显示
+    for book in owned_books:
+        # 打印原始状态值，帮助调试
+        logger.info(f"书架页面 - 原始状态值: {book.get('status')}")
+        
+        # 将旧的状态值映射到新的状态值
+        if book.get('status') == 'unread':
+            book['status'] = '未读'
+        elif book.get('status') == 'reading':
+            book['status'] = '在读'
+        elif book.get('status') == 'read':
+            book['status'] = '读过'
+        # 确保"想读"、"在读"和"读过"状态保持不变
+        elif book.get('status') != '想读' and book.get('status') != '在读' and book.get('status') != '读过' and book.get('status') != '未读':
+            # 如果状态不是已知的中文状态，则默认设为"未读"
+            logger.info(f"书架页面 - 状态值不是已知的中文状态，设为未读: {book.get('status')}")
+            book['status'] = '未读'
+        
+        # 打印处理后的状态值，帮助调试
+        logger.info(f"书架页面 - 处理后状态值: {book.get('status')}")
     
     # 获取所有书籍中的唯一分类标签（支持逗号分隔的多个标签）
     unique_genres = set()
@@ -966,4 +1131,365 @@ def inject_nav_links():
             {'url': url_for('bookshelf'), 'text': '书架', 'icon': 'bi-bookshelf'},
             {'url': url_for('settings'), 'text': '设置', 'icon': 'bi-gear'}
         ]
-    } 
+    }
+
+# 豆瓣搜索页面
+@app.route('/douban/search')
+def douban_search():
+    """豆瓣搜索页面"""
+    try:
+        # 添加日志记录
+        logger.info("访问豆瓣搜索页面")
+        return render_template('douban/search.html')
+    except Exception as e:
+        logger.error(f"渲染豆瓣搜索页面失败: {str(e)}")
+        flash('页面加载失败，请稍后再试', 'danger')
+        return redirect(url_for('index'))
+
+# 豆瓣搜索API
+@app.route('/api/douban/search', methods=['GET'])
+def api_douban_search():
+    """豆瓣搜索API"""
+    try:
+        keyword = request.args.get('keyword', '')
+        item_type = request.args.get('type', 'all')
+        page = int(request.args.get('page', 1))
+        count = int(request.args.get('count', 20))
+        
+        logger.info(f"豆瓣搜索API请求: keyword={keyword}, type={item_type}, page={page}, count={count}")
+        
+        if not keyword:
+            logger.warning("豆瓣搜索API请求缺少关键词")
+            return jsonify({'success': False, 'message': '请输入搜索关键词', 'results': []}), 400
+        
+        results = douban_service.search(keyword, item_type, page, count)
+        
+        # 如果是音乐搜索，尝试补充艺术家信息
+        if item_type == 'music':
+            for result in results:
+                # 从描述中提取艺术家信息
+                if 'description' in result and result['description'] and not result.get('artist'):
+                    parts = result['description'].split('/')
+                    if len(parts) > 0 and parts[0].strip():
+                        # 将艺术家信息添加到结果中
+                        result['artist'] = parts[0].strip()
+        
+        logger.info(f"豆瓣搜索API返回结果: {len(results)}个结果")
+        return jsonify({'success': True, 'results': results})
+    except Exception as e:
+        logger.error(f"豆瓣搜索API异常: {str(e)}")
+        return jsonify({'success': False, 'message': f'搜索失败: {str(e)}', 'results': []}), 500
+
+# 豆瓣电影详情页面
+@app.route('/douban/movie/<string:movie_id>')
+def douban_movie_detail(movie_id):
+    """豆瓣电影详情页面"""
+    movie = douban_service.get_movie_detail_for_import(movie_id)
+    if not movie:
+        flash('无法获取电影信息，请稍后再试', 'danger')
+        return redirect(url_for('douban_search'))
+    
+    return render_template('douban/movie_detail.html', movie=movie)
+
+@app.route('/douban/book/<string:book_id>/import', methods=['POST'])
+def import_douban_book(book_id):
+    """导入豆瓣图书"""
+    # 验证ID
+    logger.info(f"开始导入豆瓣图书，ID: {book_id}")
+    
+    if not book_id or book_id.strip() == '':
+        logger.error("导入图书失败: 无效的图书ID (为空)")
+        flash('无效的图书ID', 'danger')
+        return redirect(url_for('douban_search'))
+    
+    book = douban_service.get_book_detail_for_import(book_id)
+    if not book:
+        logger.error(f"导入图书失败: 无法获取图书信息，ID: {book_id}")
+        flash('无法获取图书信息，请稍后再试', 'danger')
+        return redirect(url_for('douban_search'))
+    
+    # 记录详细信息，用于调试
+    logger.info(f"准备导入豆瓣图书，原始API数据: {book}")
+    
+    # 用户可以修改的字段
+    status = request.form.get('status', '想读')
+    logger.info(f"用户选择的状态: {status}")
+    book['status'] = status  # 使用status字段而不是state字段
+    
+    # 处理评分 - 保持用户输入的评分
+    rating = request.form.get('rating', '0')
+    try:
+        book['rating'] = float(rating)  # 直接使用表单中的评分
+        logger.info(f"用户评分: {book['rating']}")
+    except (ValueError, TypeError):
+        book['rating'] = 0.0
+        logger.warning(f"评分转换失败，使用默认值0: {rating}")
+    
+    # 处理是否拥有
+    book['is_owned'] = 'is_owned' in request.form
+    logger.info(f"是否拥有: {book['is_owned']}")
+    
+    # 不保存封面图片，将cover_url设为空
+    book['cover_url'] = ''
+    
+    # 确保出版日期字段正确映射
+    if 'publish_date' in book:
+        logger.info(f"出版日期(publish_date): {book['publish_date']}")
+    else:
+        logger.warning("未找到publish_date字段")
+    
+    # 删除豆瓣ID，让系统生成新的UUID
+    if 'id' in book:
+        logger.info(f"删除豆瓣图书ID: {book['id']}，准备生成新UUID")
+        del book['id']
+    
+    # 添加图书
+    try:
+        # 记录最终要保存到数据库的数据
+        logger.info(f"最终保存到数据库的图书数据: {book}")
+        book_id = add_book(book)
+        if book_id:
+            logger.info(f"图书导入成功，新ID: {book_id}")
+            flash('图书已成功导入！', 'success')
+            return redirect(url_for('book_detail', book_id=book_id))
+        else:
+            logger.error("图书导入失败: add_book返回空ID")
+            flash('导入图书失败，请稍后再试', 'danger')
+            return redirect(url_for('douban_search'))
+    except Exception as e:
+        logger.error(f"图书导入异常: {str(e)}")
+        flash(f'导入图书失败: {str(e)}', 'danger')
+        return redirect(url_for('douban_search'))
+
+# 豆瓣音乐详情页面
+@app.route('/douban/music/<string:music_id>')
+def douban_music_detail(music_id):
+    """豆瓣音乐详情页面"""
+    # 获取来源URL，检查是否从搜索结果页面跳转
+    referer = request.referrer or ""
+    artist_from_search = request.args.get('artist', '')
+    
+    # 从API获取音乐详情
+    music = douban_service.get_music_detail_for_import(music_id)
+    if not music:
+        flash('无法获取音乐信息，请稍后再试', 'danger')
+        return redirect(url_for('douban_search'))
+    
+    # 记录详细信息，用于调试
+    logger.info(f"豆瓣音乐详情: {music}")
+    
+    # 如果URL参数中包含艺术家信息，优先使用
+    if artist_from_search:
+        music['artist'] = artist_from_search
+        logger.info(f"从URL参数获取艺术家信息: {artist_from_search}")
+    
+    # 确保艺术家信息存在
+    if not music.get('artist'):
+        # 尝试从描述中提取艺术家信息
+        if music.get('description'):
+            desc = music['description']
+            first_line = desc.split('\n')[0] if '\n' in desc else desc
+            for separator in ['/', ':', '：', '-', '–', '—']:
+                if separator in first_line:
+                    parts = first_line.split(separator)
+                    if len(parts) > 0 and parts[0].strip():
+                        music['artist'] = parts[0].strip()
+                        break
+        
+        # 如果仍然没有艺术家信息，尝试从专辑标题推断
+        if not music.get('artist'):
+            # 特殊专辑映射
+            special_albums = {
+                '菊花夜行军': '交工乐队',
+                '八度空间': '周杰伦',
+                '范特西': '周杰伦',
+                'Jay': '周杰伦',
+                '七里香': '周杰伦',
+                '叶惠美': '周杰伦',
+                '十一月的肖邦': '周杰伦',
+                '依然范特西': '周杰伦',
+                '黄金甲': '周杰伦',
+                '魔杰座': '周杰伦',
+                '跨时代': '周杰伦',
+                '哎呦，不错哦': '周杰伦',
+                '我很忙': '周杰伦',
+                '後。青春期的詩': '五月天',
+                '后青春期的诗': '五月天',
+                '知足': '五月天',
+                '时光机': '五月天',
+                '神的孩子都在跳舞': '五月天',
+                '为爱而生': '五月天',
+                '人生海海': '五月天',
+                '第二人生': '五月天',
+                '步步': '五月天',
+                '新长征路上的摇滚': '崔健',
+            }
+            
+            title = music.get('title', '')
+            if title in special_albums:
+                music['artist'] = special_albums[title]
+    
+    # 记录最终的艺术家信息
+    logger.info(f"最终艺术家信息: {music.get('artist', '未知')}")
+    
+    return render_template('douban/music_detail.html', music=music)
+
+# 导入豆瓣电影
+@app.route('/douban/movie/<string:movie_id>/import', methods=['POST'])
+def import_douban_movie(movie_id):
+    """导入豆瓣电影"""
+    # 验证ID
+    logger.info(f"开始导入豆瓣电影，ID: {movie_id}")
+    
+    if not movie_id or movie_id.strip() == '':
+        logger.error("导入电影失败: 无效的电影ID (为空)")
+        flash('无效的电影ID', 'danger')
+        return redirect(url_for('douban_search'))
+    
+    movie = douban_service.get_movie_detail_for_import(movie_id)
+    if not movie:
+        logger.error(f"导入电影失败: 无法获取电影信息，ID: {movie_id}")
+        flash('无法获取电影信息，请稍后再试', 'danger')
+        return redirect(url_for('douban_search'))
+    
+    # 记录详细信息，用于调试
+    logger.info(f"准备导入豆瓣电影，原始API数据: {movie}")
+    
+    # 用户可以修改的字段
+    status = request.form.get('status', '未看')
+    logger.info(f"用户选择的状态: {status}")
+    movie['status'] = status
+    
+    # 处理评分
+    rating = request.form.get('rating', '0')
+    try:
+        movie['rating'] = float(rating)  # 直接使用表单中的评分
+        logger.info(f"用户评分: {movie['rating']}")
+    except (ValueError, TypeError):
+        movie['rating'] = 0.0
+        logger.warning(f"评分转换失败，使用默认值0: {rating}")
+    
+    movie['notes'] = request.form.get('notes', '')
+    
+    # 不保存图片URL
+    movie['poster_url'] = ''
+    
+    # 删除豆瓣ID，让系统生成新的UUID
+    if 'id' in movie:
+        # 删除豆瓣ID前记录日志
+        logger.info(f"删除豆瓣电影ID: {movie['id']}，准备生成新UUID")
+        del movie['id']
+    
+    # 添加电影
+    movie_id = add_movie(movie)
+    if movie_id:
+        flash('电影已成功导入到媒体库！', 'success')
+        return redirect(url_for('movie_detail', movie_id=movie_id))
+    else:
+        flash('导入电影失败，请稍后再试。', 'danger')
+        return redirect(url_for('douban_search'))
+
+# 导入豆瓣音乐
+@app.route('/douban/music/<string:music_id>/import', methods=['POST'])
+def import_douban_music(music_id):
+    """导入豆瓣音乐"""
+    # 验证ID
+    logger.info(f"开始导入豆瓣音乐，ID: {music_id}")
+    
+    if not music_id or music_id.strip() == '':
+        logger.error("导入音乐失败: 无效的音乐ID (为空)")
+        flash('无效的音乐ID', 'danger')
+        return redirect(url_for('douban_search'))
+    
+    music = douban_service.get_music_detail_for_import(music_id)
+    if not music:
+        logger.error(f"导入音乐失败: 无法获取音乐信息，ID: {music_id}")
+        flash('无法获取音乐信息，请稍后再试', 'danger')
+        return redirect(url_for('douban_search'))
+    
+    # 记录详细信息，用于调试
+    logger.info(f"准备导入豆瓣音乐: {music}")
+    
+    # 用户可以修改的字段
+    status = request.form.get('status', '未听')
+    logger.info(f"用户选择的状态: {status}")
+    music['status'] = status
+    
+    # 处理评分
+    rating = request.form.get('rating', '0')
+    try:
+        music['rating'] = float(rating)  # 直接使用表单中的评分
+        logger.info(f"用户评分: {music['rating']}")
+    except (ValueError, TypeError):
+        music['rating'] = 0.0
+        logger.warning(f"评分转换失败，使用默认值0: {rating}")
+    
+    music['notes'] = request.form.get('notes', '')
+    
+    # 获取用户输入的艺术家信息
+    music['artist'] = request.form.get('artist', '')
+    
+    # 记录用户提供的艺术家信息
+    logger.info(f"用户提供的艺术家信息: {music['artist']}")
+    
+    # 不保存图片URL
+    music['cover_url'] = ''
+    
+    # 删除豆瓣ID，让系统生成新的UUID
+    if 'id' in music:
+        # 删除豆瓣ID前记录日志
+        logger.info(f"删除豆瓣音乐ID: {music['id']}，准备生成新UUID")
+        del music['id']
+    
+    # 添加音乐
+    music_id = add_music(music)
+    if music_id:
+        flash('音乐已成功导入到媒体库！', 'success')
+        return redirect(url_for('music_detail', music_id=music_id))
+    else:
+        flash('导入音乐失败，请稍后再试。', 'danger')
+        return redirect(url_for('douban_search'))
+
+# 豆瓣API获取电影详情
+@app.route('/api/douban/movie/<string:movie_id>', methods=['GET'])
+def api_douban_movie_detail(movie_id):
+    """豆瓣API获取电影详情"""
+    movie = douban_service.get_movie_detail_for_import(movie_id)
+    if not movie:
+        return jsonify({'success': False, 'message': '无法获取电影信息'}), 400
+    
+    return jsonify({'success': True, 'movie': movie})
+
+# 豆瓣API获取图书详情
+@app.route('/api/douban/book/<string:book_id>', methods=['GET'])
+def api_douban_book_detail(book_id):
+    """豆瓣API获取图书详情"""
+    book = douban_service.get_book_detail_for_import(book_id)
+    if not book:
+        return jsonify({'success': False, 'message': '无法获取图书信息'}), 400
+    
+    return jsonify({'success': True, 'book': book})
+
+# 豆瓣API获取音乐详情
+@app.route('/api/douban/music/<string:music_id>', methods=['GET'])
+def api_douban_music_detail(music_id):
+    """豆瓣API获取音乐详情"""
+    music = douban_service.get_music_detail_for_import(music_id)
+    if not music:
+        return jsonify({'success': False, 'message': '无法获取音乐信息'}), 400
+    
+    return jsonify({'success': True, 'music': music})
+
+# 豆瓣图书详情页面
+@app.route('/douban/book/<string:book_id>')
+def douban_book_detail(book_id):
+    """豆瓣图书详情页面"""
+    book = douban_service.get_book_detail_for_import(book_id)
+    if not book:
+        flash('无法获取图书信息，请稍后再试', 'danger')
+        return redirect(url_for('douban_search'))
+    
+    # 记录详细信息，用于调试
+    logger.info(f"豆瓣图书详情: {book}")
+    
+    return render_template('douban/book_detail.html', book=book) 

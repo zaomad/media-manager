@@ -137,11 +137,29 @@ def update_db_schema():
             cursor.execute("ALTER TABLE books ADD COLUMN description TEXT")
         
         # 检查books表是否缺少is_owned字段
-        cursor.execute("PRAGMA table_info(books)")
-        columns = [column[1] for column in cursor.fetchall()]
         if 'is_owned' not in columns:
             logger.info("添加books表的is_owned字段")
             cursor.execute("ALTER TABLE books ADD COLUMN is_owned BOOLEAN DEFAULT 0")
+        
+        # 检查books表是否缺少series字段
+        if 'series' not in columns:
+            logger.info("添加books表的series字段")
+            cursor.execute("ALTER TABLE books ADD COLUMN series TEXT")
+        
+        # 检查books表是否缺少translator字段
+        if 'translator' not in columns:
+            logger.info("添加books表的translator字段")
+            cursor.execute("ALTER TABLE books ADD COLUMN translator TEXT")
+        
+        # 检查books表是否缺少totalPage字段（将使用pages字段）
+        if 'page_count' not in columns:
+            logger.info("添加books表的page_count字段")
+            cursor.execute("ALTER TABLE books ADD COLUMN page_count INTEGER")
+        
+        # 检查books表是否缺少price字段
+        if 'price' not in columns:
+            logger.info("添加books表的price字段")
+            cursor.execute("ALTER TABLE books ADD COLUMN price TEXT")
         
         # 检查movies表是否缺少cast字段
         cursor.execute("PRAGMA table_info(movies)")

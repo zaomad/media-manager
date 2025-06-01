@@ -97,7 +97,7 @@
                                     <label for="status" class="form-label">观看状态</label>
                                     <select class="form-select" id="status" name="status">
                                         <option value="unwatched" {% if movie and movie.status == 'unwatched' %}selected{% endif %}>未看</option>
-                                        <option value="watching" {% if movie and movie.status == 'watching' %}selected{% endif %}>在看</option>
+                                        <option value="wanting" {% if movie and (movie.status == 'watching' or movie.status == 'wanting') %}selected{% endif %}>想看</option>
                                         <option value="watched" {% if movie and movie.status == 'watched' %}selected{% endif %}>已看</option>
                                     </select>
                                 </div>

@@ -142,9 +142,9 @@
         <div class="col-md-6">
             <select class="form-select" v-model="filterStatus">
                 <option value="">所有状态</option>
-                <option value="unlistened">未听</option>
-                <option value="listening">在听</option>
-                <option value="listened">已听</option>
+                <option value="未听">未听</option>
+                <option value="想听">想听</option>
+                <option value="已听">已听</option>
             </select>
         </div>
     </div>
@@ -229,24 +229,26 @@
             <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                 {% for music in musics %}
                 <div class="col music-item" 
-                    data-album="{{ music.album|lower }}" 
+                    data-title="{{ music.title|lower }}" 
                     data-artist="{{ music.artist|lower }}" 
+                    data-album="{{ music.album|lower }}"
                     data-status="{{ music.status }}"
                     data-year="{{ music.year }}"
                     data-genre="{{ music.genre|lower }}"
                     data-rating="{{ music.rating }}">
                     <div class="card h-100">
                         {% if music.cover_url %}
-                        <img src="{{ get_image_url(music.cover_url, 'grid') }}" class="card-img-top" alt="{{ music.album }}" style="height: 300px; object-fit: cover;">
+                        <img src="{{ get_image_url(music.cover_url, 'grid') }}" class="card-img-top" alt="{{ music.title }}" style="height: 300px; object-fit: cover;">
                         {% else %}
                         <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 300px;">
                             <i class="bi bi-music-note-beamed" style="font-size: 3rem;"></i>
                         </div>
                         {% endif %}
                         <div class="card-body">
-                            <h5 class="card-title">{{ music.album }}</h5>
+                            <h5 class="card-title">{{ music.title }}</h5>
                             <h6 class="card-subtitle mb-2 text-muted">{{ music.artist }}</h6>
                             <p class="card-text">
+                                {% if music.album %}<small class="text-muted">{{ music.album }}</small>{% endif %}
                                 {% if music.year %}<small class="text-muted">{{ music.year }}</small>{% endif %}
                                 {% if music.genre %}<small class="text-muted">{{ music.genre }}</small>{% endif %}
                             </p>
@@ -261,16 +263,17 @@
                             </div>
                             {% endif %}
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="badge {% if music.status == 'listened' %}bg-success{% elif music.status == 'listening' %}bg-warning{% else %}bg-secondary{% endif %}">
-                                    {% if music.status == 'listened' %}已听
-                                    {% elif music.status == 'listening' %}在听
+                                <span class="badge {% if music.status == 'listened' or music.status == '听过' or music.status == '已听' %}bg-success{% elif music.status == 'listening' or music.status == '在听' %}bg-warning{% elif music.status == 'unlistened' or music.status == '想听' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {% if music.status == 'listened' or music.status == '听过' or music.status == '已听' %}已听
+                                    {% elif music.status == 'listening' or music.status == '在听' %}在听
+                                    {% elif music.status == 'unlistened' or music.status == '想听' %}想听
                                     {% else %}未听
                                     {% endif %}
                                 </span>
                                 <div>
-                                    <button class="btn btn-sm btn-outline-primary details-btn" data-id="{{ music.id }}">
+                                    <a href="{{ url_for('music_detail', music_id=music.id) }}" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-info-circle"></i> 详情
-                                    </button>
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -280,10 +283,10 @@
                                     <button class="btn btn-sm btn-outline-danger delete-music-btn" data-id="{{ music.id }}" style="display: none;">
                                         <i class="bi bi-trash"></i>
                                     </button>
-                                    <a href="{{ url_for('edit_music_route', music_id=music.id) }}" class="btn btn-sm btn-outline-secondary" style="display: none;">
-                                        <i class="bi bi-pencil"></i> 编辑
-                                    </a>
                                 </div>
+                                <a href="{{ url_for('edit_music_route', music_id=music.id) }}" class="btn btn-sm btn-outline-secondary" style="display: none;">
+                                    <i class="bi bi-pencil"></i> 编辑
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -303,29 +306,31 @@
             {% if musics %}
                 {% for music in musics %}
                 <div class="media-item music-item"
-                     data-album="{{ music.album|lower }}" 
+                     data-title="{{ music.title|lower }}" 
                      data-artist="{{ music.artist|lower }}" 
+                     data-album="{{ music.album|lower }}"
                      data-status="{{ music.status }}"
                      data-year="{{ music.year }}"
                      data-genre="{{ music.genre|lower }}"
                      data-rating="{{ music.rating }}">
                     <div class="media-row">
                         {% if music.cover_url %}
-                        <img src="{{ get_image_url(music.cover_url, 'list') }}" class="media-thumbnail" alt="{{ music.album }}">
+                        <img src="{{ get_image_url(music.cover_url, 'list') }}" class="media-thumbnail" alt="{{ music.title }}">
                         {% else %}
                         <div class="media-thumbnail bg-light d-flex align-items-center justify-content-center">
                             <i class="bi bi-music-note-beamed"></i>
                         </div>
                         {% endif %}
                         <div class="media-content">
-                            <div class="media-title">{{ music.album }}</div>
+                            <div class="media-title">{{ music.title }}</div>
                             <div class="media-info">
                                 <span>{{ music.artist }}</span>
                                 {% if music.year %} · <span>{{ music.year }}</span>{% endif %}
                                 {% if music.genre %} · <span>{{ music.genre }}</span>{% endif %}
-                                <span class="badge ms-2 {% if music.status == 'listened' %}bg-success{% elif music.status == 'listening' %}bg-warning{% else %}bg-secondary{% endif %}">
-                                    {% if music.status == 'listened' %}已听
-                                    {% elif music.status == 'listening' %}在听
+                                <span class="badge ms-2 {% if music.status == 'listened' or music.status == '听过' or music.status == '已听' %}bg-success{% elif music.status == 'listening' or music.status == '在听' %}bg-warning{% elif music.status == 'unlistened' or music.status == '想听' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {% if music.status == 'listened' or music.status == '听过' or music.status == '已听' %}已听
+                                    {% elif music.status == 'listening' or music.status == '在听' %}在听
+                                    {% elif music.status == 'unlistened' or music.status == '想听' %}想听
                                     {% else %}未听
                                     {% endif %}
                                 </span>
@@ -365,46 +370,40 @@
         <!-- 表格视图 -->
         <div class="view-content table-content" style="display: none;">
             {% if musics %}
-            <div class="table-responsive table-view">
-                <table class="table table-hover table-sortable">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
                     <thead>
                         <tr>
-                            <th scope="col" style="width: 60px;">#</th>
-                            <th scope="col" class="sortable" data-sort="album">专辑 <i class="bi bi-arrow-down-short"></i></th>
-                            <th scope="col" class="sortable" data-sort="artist">艺术家 <i class="bi bi-arrow-down-short"></i></th>
-                            <th scope="col" class="sortable" data-sort="year">年份 <i class="bi bi-arrow-down-short"></i></th>
-                            <th scope="col">类型</th>
-                            <th scope="col">状态</th>
-                            <th scope="col" class="sortable" data-sort="rating">评分 <i class="bi bi-arrow-down-short"></i></th>
-                            <th scope="col" style="width: 100px;">操作</th>
+                            <th scope="col" class="sortable" data-sort="title">标题 <i class="bi bi-arrow-down"></i></th>
+                            <th scope="col" class="sortable" data-sort="artist">艺术家 <i class="bi bi-arrow-down"></i></th>
+                            <th scope="col" class="sortable" data-sort="album">专辑 <i class="bi bi-arrow-down"></i></th>
+                            <th scope="col" class="sortable" data-sort="year">年份 <i class="bi bi-arrow-down"></i></th>
+                            <th scope="col" class="sortable" data-sort="genre">类型 <i class="bi bi-arrow-down"></i></th>
+                            <th scope="col" class="sortable" data-sort="status">状态 <i class="bi bi-arrow-down"></i></th>
+                            <th scope="col" class="sortable" data-sort="rating">评分 <i class="bi bi-arrow-down"></i></th>
+                            <th scope="col">操作</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for music in musics %}
                         <tr class="music-item"
-                            data-album="{{ music.album|lower }}" 
+                            data-title="{{ music.title|lower }}" 
                             data-artist="{{ music.artist|lower }}" 
+                            data-album="{{ music.album|lower }}"
                             data-status="{{ music.status }}"
                             data-year="{{ music.year }}"
                             data-genre="{{ music.genre|lower }}"
                             data-rating="{{ music.rating }}">
-                            <td>
-                                {% if music.cover_url %}
-                                <img src="{{ get_image_url(music.cover_url, 'table') }}" class="media-thumbnail" alt="{{ music.album }}">
-                                {% else %}
-                                <div class="media-thumbnail bg-light d-flex align-items-center justify-content-center">
-                                    <i class="bi bi-music-note-beamed"></i>
-                                </div>
-                                {% endif %}
-                            </td>
-                            <td>{{ music.album }}</td>
+                            <td>{{ music.title }}</td>
                             <td>{{ music.artist }}</td>
+                            <td>{{ music.album }}</td>
                             <td>{{ music.year }}</td>
                             <td>{{ music.genre }}</td>
                             <td>
-                                <span class="badge {% if music.status == 'listened' %}bg-success{% elif music.status == 'listening' %}bg-warning{% else %}bg-secondary{% endif %}">
-                                    {% if music.status == 'listened' %}已听
-                                    {% elif music.status == 'listening' %}在听
+                                <span class="badge {% if music.status == 'listened' or music.status == '听过' or music.status == '已听' %}bg-success{% elif music.status == 'listening' or music.status == '在听' %}bg-warning{% elif music.status == 'unlistened' or music.status == '想听' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {% if music.status == 'listened' or music.status == '听过' or music.status == '已听' %}已听
+                                    {% elif music.status == 'listening' or music.status == '在听' %}在听
+                                    {% elif music.status == 'unlistened' or music.status == '想听' %}想听
                                     {% else %}未听
                                     {% endif %}
                                 </span>
@@ -445,9 +444,13 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
+<!-- 删除确认对话框 -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <!-- 保持模态框内容不变 -->
+</div>
+
+<!-- JavaScript -->
 <script>
     new Vue({
         el: '#music-app',
@@ -461,12 +464,30 @@
                 const status = this.filterStatus;
                 
                 document.querySelectorAll('.music-item').forEach(item => {
-                    const album = item.dataset.album;
+                    const title = item.dataset.title;
                     const artist = item.dataset.artist;
                     const itemStatus = item.dataset.status;
                     
-                    const matchesSearch = album.includes(query) || artist.includes(query);
-                    const matchesStatus = !status || itemStatus === status;
+                    const matchesSearch = title.includes(query) || artist.includes(query);
+                    
+                    // 状态匹配逻辑，同时处理中文和英文状态值
+                    let matchesStatus = !status; // 如果没有选择状态，则默认匹配
+                    
+                    if (!matchesStatus) {
+                        // 处理中文状态
+                        if (status === '已听') {
+                            matchesStatus = itemStatus === '已听' || itemStatus === '听过' || itemStatus === 'listened';
+                        } else if (status === '在听') {
+                            matchesStatus = itemStatus === '在听' || itemStatus === 'listening';
+                        } else if (status === '想听') {
+                            matchesStatus = itemStatus === '想听' || itemStatus === 'wanting' || itemStatus === 'listening';
+                        } else if (status === '未听') {
+                            matchesStatus = itemStatus === '未听' || itemStatus === 'unlistened';
+                        } else {
+                            // 处理英文状态（兼容性）
+                            matchesStatus = itemStatus === status;
+                        }
+                    }
                     
                     if (matchesSearch && matchesStatus) {
                         item.style.display = '';
@@ -778,18 +799,34 @@
             const allMusic = document.querySelectorAll('.music-item');
             
             allMusic.forEach(music => {
-                const album = music.dataset.album.toLowerCase();
+                const title = music.dataset.title.toLowerCase();
                 const artist = music.dataset.artist.toLowerCase();
                 const status = music.dataset.status;
                 const genre = music.dataset.genre.toLowerCase();
                 
-                // 搜索匹配 (专辑名或艺术家)
+                // 搜索匹配 (标题或艺术家)
                 const matchesSearch = !searchQuery || 
-                    album.includes(searchQuery) || 
+                    title.includes(searchQuery) || 
                     artist.includes(searchQuery);
                 
                 // 状态匹配
-                const matchesStatus = !statusFilter || status === statusFilter;
+                let matchesStatus = !statusFilter;
+                
+                if (!matchesStatus) {
+                    // 处理中文状态
+                    if (statusFilter === '已听') {
+                        matchesStatus = status === '已听' || status === '听过' || status === 'listened';
+                    } else if (statusFilter === '在听') {
+                        matchesStatus = status === '在听' || status === 'listening';
+                    } else if (statusFilter === '想听') {
+                        matchesStatus = status === '想听' || status === 'wanting' || status === 'listening';
+                    } else if (statusFilter === '未听') {
+                        matchesStatus = status === '未听' || status === 'unlistened';
+                    } else {
+                        // 处理英文状态（兼容性）
+                        matchesStatus = status === statusFilter;
+                    }
+                }
                 
                 // 分类匹配 (必须匹配所有选定的分类标签)
                 let matchesGenre = selectedGenres.length === 0; // 如果没有选中分类，则默认匹配
@@ -917,16 +954,25 @@
                 rows.sort((a, b) => {
                     let valueA, valueB;
                     
-                    if (field === 'album') {
-                        valueA = a.dataset.album;
-                        valueB = b.dataset.album;
+                    if (field === 'title') {
+                        valueA = a.dataset.title;
+                        valueB = b.dataset.title;
                     } else if (field === 'artist') {
                         valueA = a.dataset.artist;
                         valueB = b.dataset.artist;
+                    } else if (field === 'album') {
+                        valueA = a.dataset.album;
+                        valueB = b.dataset.album;
                     } else if (field === 'year') {
                         valueA = parseInt(a.dataset.year) || 0;
                         valueB = parseInt(b.dataset.year) || 0;
                         return direction === 'asc' ? valueA - valueB : valueB - valueA;
+                    } else if (field === 'genre') {
+                        valueA = a.dataset.genre;
+                        valueB = b.dataset.genre;
+                    } else if (field === 'status') {
+                        valueA = a.dataset.status;
+                        valueB = b.dataset.status;
                     } else if (field === 'rating') {
                         valueA = parseFloat(a.dataset.rating) || 0;
                         valueB = parseFloat(b.dataset.rating) || 0;

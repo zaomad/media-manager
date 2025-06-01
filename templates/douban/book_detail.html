@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ book.title }} - 豆瓣图书 - Media Manager{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">首页</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('douban_search') }}">豆瓣搜索</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ book.title }}</li>
+        </ol>
+    </nav>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <!-- 封面图 -->
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <img src="{{ book.cover_url }}" class="img-fluid rounded" alt="{{ book.title }}">
+                </div>
+                
+                <!-- 图书信息 -->
+                <div class="col-md-9">
+                    <h1 class="mb-2">{{ book.title }}</h1>
+                    
+                    <div class="mb-3">
+                        {% if book.rating %}
+                        <span class="badge bg-warning text-dark me-2">
+                            <i class="bi bi-star-fill me-1"></i>{{ book.rating }}
+                        </span>
+                        {% endif %}
+                        
+                        {% if book.tags %}
+                        {% for tag in book.tags.split(',') %}
+                        <span class="badge bg-info text-dark me-1">{{ tag }}</span>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                    
+                    <table class="table table-sm">
+                        <tbody>
+                            {% if book.series %}
+                            <tr>
+                                <th scope="row" width="100">丛书</th>
+                                <td>{{ book.series }}</td>
+                            </tr>
+                            {% endif %}
+                            
+                            {% if book.author %}
+                            <tr>
+                                <th scope="row" width="100">作者</th>
+                                <td>{{ book.author }}</td>
+                            </tr>
+                            {% endif %}
+                            
+                            {% if book.translator %}
+                            <tr>
+                                <th scope="row">译者</th>
+                                <td>{{ book.translator }}</td>
+                            </tr>
+                            {% endif %}
+                            
+                            {% if book.publisher %}
+                            <tr>
+                                <th scope="row">出版社</th>
+                                <td>{{ book.publisher }}</td>
+                            </tr>
+                            {% endif %}
+                            
+                            
+                            {% if book.publish_date %}
+                            <tr>
+                                <th scope="row">出版年份</th>
+                                <td>{{ book.publish_date }}</td>
+                            </tr>
+                            {% endif %}
+                            
+                            {% if book.isbn %}
+                            <tr>
+                                <th scope="row">ISBN</th>
+                                <td>{{ book.isbn }}</td>
+                            </tr>
+                            {% endif %}
+                            
+                            {% if book.pages %}
+                            <tr>
+                                <th scope="row">页数</th>
+                                <td>{{ book.pages }}</td>
+                            </tr>
+                            {% endif %}
+                            
+                            {% if book.price %}
+                            <tr>
+                                <th scope="row">定价</th>
+                                <td>{{ book.price }}</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 简介 -->
+    {% if book.description %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">简介</h5>
+        </div>
+        <div class="card-body">
+            <p class="card-text">{{ book.description | nl2br }}</p>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- 导入表单 -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">导入到我的媒体库</h5>
+        </div>
+        <div class="card-body">
+            <form action="/douban/book/{{ book.id }}/import" method="post">
+                <div class="mb-3">
+                    <label for="status" class="form-label">状态</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="未读">未读</option>
+                        <option value="想读">想读</option>
+                        <option value="在读">在读</option>
+                        <option value="读过">读过</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="rating" class="form-label">我的评分 (0-5分)</label>
+                    <input type="number" class="form-control" id="rating" name="rating" value="0" min="0" max="5" step="0.1">
+                    <div class="form-text">请输入0-5之间的数值，精确到小数点后一位</div>
+                    <div class="star-rating" id="starRating">
+                        <!-- 星级评分将由JavaScript动态生成 -->
+                    </div>
+                </div>
+                
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="is_owned" name="is_owned">
+                    <label class="form-check-label" for="is_owned">
+                        我拥有这本书
+                    </label>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i> 导入图书
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 评分输入框
+    const ratingInput = document.getElementById('rating');
+    const starRating = document.getElementById('starRating');
+    
+    // 根据评分更新星级显示
+    function updateStars(rating) {
+        // 清空现有星星
+        starRating.innerHTML = '';
+        
+        // 添加星星 - 5分制
+        for (let i = 0; i < 5; i++) {
+            const starValue = i; // 每颗星代表1分
+            
+            if (rating >= starValue + 1) {
+                // 满星
+                starRating.innerHTML += '<i class="bi bi-star-fill" style="color: #ffc107; font-size: 24px; margin-right: 5px;"></i>';
+            } else if (rating >= starValue + 0.5) {
+                // 半星
+                starRating.innerHTML += '<i class="bi bi-star-half" style="color: #ffc107; font-size: 24px; margin-right: 5px;"></i>';
+            } else {
+                // 空星
+                starRating.innerHTML += '<i class="bi bi-star" style="color: #ccc; font-size: 24px; margin-right: 5px;"></i>';
+            }
+        }
+    }
+    
+    // 初始化星级显示
+    updateStars(parseFloat(ratingInput.value) || 0);
+    
+    // 监听评分输入变化
+    ratingInput.addEventListener('input', function() {
+        // 限制输入范围和精度
+        let value = parseFloat(this.value);
+        if (isNaN(value)) value = 0;
+        if (value < 0) value = 0;
+        if (value > 5) value = 5;
+        
+        // 四舍五入到小数点后一位
+        value = Math.round(value * 10) / 10;
+        this.value = value;
+        
+        // 更新星级显示
+        updateStars(value);
+    });
+
+    // 表单提交前验证
+    document.querySelector('form').addEventListener('submit', function(event) {
+        // 获取book.id
+        const bookId = '{{ book.id }}';
+        
+        // 检查book.id是否为空
+        if (!bookId || bookId.trim() === '') {
+            event.preventDefault();
+            console.error('书籍ID无效:', bookId);
+            alert('无法导入：书籍ID无效');
+            return false;
+        }
+        
+        console.log('提交表单，书籍ID:', bookId);
+        
+        // 修改表单action，确保没有双斜杠
+        this.action = '/douban/book/' + bookId + '/import';
+        console.log('表单提交地址:', this.action);
+    });
+</script>
+{% endblock %} 

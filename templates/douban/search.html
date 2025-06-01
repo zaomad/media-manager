@@ -1,0 +1,314 @@
+{% extends 'base.html' %}
+
+{% block title %}豆瓣搜索 - Media Manager{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">豆瓣搜索</h1>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="searchForm" class="mb-3">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-6">
+                        <input type="text" id="keyword" class="form-control" placeholder="输入关键词搜索..." required>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="type" class="form-select">
+                            <option value="all">全部</option>
+                            <option value="movie">电影</option>
+                            <option value="book">图书</option>
+                            <option value="music">音乐</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search me-1"></i> 搜索
+                        </button>
+                    </div>
+                </div>
+            </form>
+            
+            <div id="searchStatus" class="text-center py-4 d-none">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">搜索中...</span>
+                </div>
+                <p class="mt-2">搜索中，请稍候...</p>
+            </div>
+            
+            <div id="noResults" class="text-center py-4 d-none">
+                <i class="bi bi-emoji-frown fs-1 text-muted"></i>
+                <p class="mt-2">没有找到相关结果，请尝试其他关键词。</p>
+            </div>
+            
+            <div id="searchError" class="alert alert-danger d-none" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <span id="errorMessage">搜索出错，请稍后再试。</span>
+            </div>
+        </div>
+    </div>
+    
+    <div id="searchResults" class="d-none">
+        <h2 class="mb-3">搜索结果</h2>
+        <div class="row g-3" id="resultsList">
+            <!-- 搜索结果将在这里动态生成 -->
+        </div>
+        
+        <div class="d-flex justify-content-center mt-4">
+            <button id="loadMore" class="btn btn-outline-primary d-none">
+                加载更多结果
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 当前页码和类型
+    let currentPage = 1;
+    let currentType = 'all';
+    let currentKeyword = '';
+    let hasMoreResults = false;
+    
+    // 搜索表单提交
+    document.getElementById('searchForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        currentKeyword = document.getElementById('keyword').value.trim();
+        currentType = document.getElementById('type').value;
+        currentPage = 1;
+        
+        if (currentKeyword) {
+            performSearch();
+        }
+    });
+    
+    // 加载更多按钮点击事件
+    document.getElementById('loadMore').addEventListener('click', function() {
+        currentPage++;
+        performSearch(true);
+    });
+    
+    // 执行搜索
+    function performSearch(append = false) {
+        // 显示搜索状态
+        if (!append) {
+            document.getElementById('searchResults').classList.add('d-none');
+            document.getElementById('searchStatus').classList.remove('d-none');
+            document.getElementById('noResults').classList.add('d-none');
+            document.getElementById('searchError').classList.add('d-none');
+            document.getElementById('resultsList').innerHTML = '';
+        }
+        
+        // 构建API URL
+        const url = `/api/douban/search?keyword=${encodeURIComponent(currentKeyword)}&type=${currentType}&page=${currentPage}&count=20`;
+        
+        // 发送请求
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('搜索请求失败');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // 隐藏加载状态
+                document.getElementById('searchStatus').classList.add('d-none');
+                
+                if (data.success) {
+                    const results = data.results;
+                    
+                    if (results.length === 0 && !append) {
+                        // 没有结果
+                        document.getElementById('noResults').classList.remove('d-none');
+                    } else {
+                        // 显示结果容器
+                        document.getElementById('searchResults').classList.remove('d-none');
+                        
+                        // 渲染结果
+                        renderResults(results, append);
+                        
+                        // 处理加载更多按钮
+                        hasMoreResults = results.length === 20;
+                        const loadMoreBtn = document.getElementById('loadMore');
+                        if (hasMoreResults) {
+                            loadMoreBtn.classList.remove('d-none');
+                        } else {
+                            loadMoreBtn.classList.add('d-none');
+                        }
+                    }
+                } else {
+                    // 显示错误信息
+                    showError(data.message || '搜索失败，请稍后再试');
+                }
+            })
+            .catch(error => {
+                // 隐藏加载状态，显示错误
+                document.getElementById('searchStatus').classList.add('d-none');
+                showError(error.message);
+            });
+    }
+    
+    // 显示错误信息
+    function showError(message) {
+        const errorElement = document.getElementById('searchError');
+        document.getElementById('errorMessage').textContent = message;
+        errorElement.classList.remove('d-none');
+    }
+    
+    // 渲染搜索结果
+    function renderResults(results, append) {
+        const container = document.getElementById('resultsList');
+        
+        // 如果不是追加模式，清空容器
+        if (!append) {
+            container.innerHTML = '';
+        }
+        
+        // 打印搜索结果到控制台，便于调试
+        console.log('搜索结果:', results);
+        
+        // 遍历结果并添加到容器
+        results.forEach(item => {
+            // 打印每个项目的详细信息
+            console.log('项目详情:', item);
+            
+            const col = document.createElement('div');
+            col.className = 'col-md-6 col-lg-4 mb-3';
+            
+            // 确定详情页URL
+            let detailUrl = '#';
+            if (item.type.includes('电影') || item.type.includes('电视')) {
+                detailUrl = `/douban/movie/${item.id}`;
+            } else if (item.type.includes('图书')) {
+                detailUrl = `/douban/book/${item.id}`;
+            } else if (item.type.includes('音乐')) {
+                // 对于音乐类型，在URL中添加艺术家信息
+                detailUrl = `/douban/music/${item.id}`;
+                if (item.artist) {
+                    detailUrl += `?artist=${encodeURIComponent(item.artist)}`;
+                }
+            }
+            
+            // 准备额外信息
+            let extraInfo = '';
+            
+            // 从描述中提取更多信息
+            let description = item.description || '';
+            let parts = description.split('/').map(part => part.trim()).filter(part => part);
+            
+            console.log('描述:', description);
+            console.log('分割后的部分:', parts);
+            
+            // 根据不同类型添加额外信息
+            if (item.type.includes('图书')) {
+                // 图书显示作者和出版社
+                let author = item.author || '';
+                let publisher = '';
+                
+                // 如果没有作者，尝试从描述中提取
+                if (!author && parts.length > 0) {
+                    author = parts[0];
+                }
+                
+                // 尝试从描述中提取出版社
+                if (parts.length > 1) {
+                    // 通常出版社在描述的第二或第三部分
+                    publisher = parts.length > 2 ? parts[2] : parts[1];
+                }
+                
+                console.log('图书 - 作者:', author, '出版社:', publisher);
+                
+                if (author) {
+                    extraInfo += `<div class="small text-muted mb-1"><strong>作者:</strong> ${author}</div>`;
+                }
+                if (publisher) {
+                    extraInfo += `<div class="small text-muted mb-1"><strong>出版社:</strong> ${publisher}</div>`;
+                }
+            } else if (item.type.includes('电影') || item.type.includes('电视')) {
+                // 电影显示导演和演员
+                let director = item.director || '';
+                let cast = '';
+                
+                // 如果没有导演信息，尝试从描述中提取
+                if (!director && parts.length > 0) {
+                    director = parts[0];
+                }
+                
+                // 尝试从描述中提取演员
+                if (parts.length > 1) {
+                    cast = parts[1];
+                }
+                
+                console.log('电影 - 导演:', director, '演员:', cast);
+                
+                if (director) {
+                    extraInfo += `<div class="small text-muted mb-1"><strong>导演:</strong> ${director}</div>`;
+                }
+                if (cast) {
+                    extraInfo += `<div class="small text-muted mb-1 text-truncate"><strong>主演:</strong> ${cast}</div>`;
+                }
+            } else if (item.type.includes('音乐')) {
+                // 音乐显示艺术家和专辑信息
+                let artist = item.artist || '';
+                let album = '';
+                
+                // 如果没有艺术家信息，尝试从描述中提取
+                if (!artist && parts.length > 0) {
+                    artist = parts[0];
+                }
+                
+                // 尝试从描述中提取专辑信息
+                if (parts.length > 1) {
+                    album = parts[1];
+                }
+                
+                console.log('音乐 - 艺术家:', artist, '专辑:', album);
+                
+                if (artist) {
+                    extraInfo += `<div class="small text-muted mb-1"><strong>艺术家:</strong> ${artist}</div>`;
+                }
+                if (album && album !== item.title) {
+                    extraInfo += `<div class="small text-muted mb-1"><strong>专辑:</strong> ${album}</div>`;
+                }
+            }
+            
+            console.log('额外信息:', extraInfo);
+            
+            // 创建结果卡片
+            col.innerHTML = `
+                <div class="card h-100 border-light shadow-sm">
+                    <div class="row g-0">
+                        <div class="col-4">
+                            <div class="p-2">
+                                ${item.cover_url ? 
+                                    `<img src="${item.cover_url}" class="img-fluid rounded" alt="${item.title}" style="width: 100%; height: 120px; object-fit: cover;">` : 
+                                    `<div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 120px;">
+                                        <i class="bi ${item.type.includes('电影') ? 'bi-film' : item.type.includes('图书') ? 'bi-book' : 'bi-music-note-beamed'}" style="font-size: 2rem; color: #6c757d;"></i>
+                                    </div>`
+                                }
+                            </div>
+                        </div>
+                        <div class="col-8">
+                            <div class="card-body p-2">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <h6 class="card-title mb-0 text-truncate" style="max-width: 80%;">${item.title}</h6>
+                                    ${item.score ? '<span class="badge bg-warning text-dark"><i class="bi bi-star-fill me-1"></i>' + item.score + '</span>' : ''}
+                                </div>
+                                <div class="mb-2">
+                                    <span class="badge bg-secondary me-1">${item.type}</span>
+                                    ${item.year ? '<span class="badge bg-secondary me-1">' + item.year + '</span>' : ''}
+                                </div>
+                                ${extraInfo}
+                                <a href="${detailUrl}" class="btn btn-sm btn-outline-primary mt-1">查看详情</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(col);
+        });
+    }
+</script>
+{% endblock %} 

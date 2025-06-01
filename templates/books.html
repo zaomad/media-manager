@@ -142,9 +142,10 @@
         <div class="col-md-6">
             <select class="form-select" v-model="filterStatus">
                 <option value="">所有状态</option>
-                <option value="unread">未读</option>
-                <option value="reading">在读</option>
-                <option value="read">已读</option>
+                <option value="未读">未读</option>
+                <option value="想读">想读</option>
+                <option value="在读">在读</option>
+                <option value="读过">读过</option>
             </select>
         </div>
     </div>
@@ -248,7 +249,6 @@
                                 {% if book.publish_date %}<small class="text-muted">{{ book.publish_date }}</small>{% endif %}
                                 {% if book.tags %}<small class="text-muted">{{ book.tags }}</small>{% endif %}
                             </p>
-                            {% if book.rating %}
                             <div class="mb-2">
                                 {% for i in range(1, book.rating|int + 1) %}
                                     <i class="bi bi-star-fill text-warning"></i>
@@ -256,14 +256,13 @@
                                 {% if book.rating|float % 1 >= 0.5 %}
                                     <i class="bi bi-star-half text-warning"></i>
                                 {% endif %}
+                                {% for i in range(book.rating|int + (1 if book.rating|float % 1 >= 0.5 else 0), 5) %}
+                                    <i class="bi bi-star text-warning"></i>
+                                {% endfor %}
                             </div>
-                            {% endif %}
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="badge {% if book.status == 'read' %}bg-success{% elif book.status == 'reading' %}bg-warning{% else %}bg-secondary{% endif %}">
-                                    {% if book.status == 'read' %}已读
-                                    {% elif book.status == 'reading' %}在读
-                                    {% else %}未读
-                                    {% endif %}
+                                <span class="badge ms-2 {% if book.status == '读过' %}bg-success{% elif book.status == '在读' %}bg-primary{% elif book.status == '想读' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {{ book.status }}
                                 </span>
                                 <div>
                                     <button class="btn btn-sm btn-outline-primary details-btn" data-id="{{ book.id }}">
@@ -321,11 +320,8 @@
                                 <span>{{ book.author }}</span>
                                 {% if book.publish_date %} · <span>{{ book.publish_date }}</span>{% endif %}
                                 {% if book.tags %} · <span>{{ book.tags }}</span>{% endif %}
-                                <span class="badge ms-2 {% if book.status == 'read' %}bg-success{% elif book.status == 'reading' %}bg-warning{% else %}bg-secondary{% endif %}">
-                                    {% if book.status == 'read' %}已读
-                                    {% elif book.status == 'reading' %}在读
-                                    {% else %}未读
-                                    {% endif %}
+                                <span class="badge ms-2 {% if book.status == '读过' %}bg-success{% elif book.status == '在读' %}bg-primary{% elif book.status == '想读' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {{ book.status }}
                                 </span>
                             </div>
                         </div>
@@ -400,11 +396,8 @@
                             <td>{{ book.publish_date }}</td>
                             <td>{{ book.tags }}</td>
                             <td>
-                                <span class="badge {% if book.status == 'read' %}bg-success{% elif book.status == 'reading' %}bg-warning{% else %}bg-secondary{% endif %}">
-                                    {% if book.status == 'read' %}已读
-                                    {% elif book.status == 'reading' %}在读
-                                    {% else %}未读
-                                    {% endif %}
+                                <span class="badge ms-2 {% if book.status == '读过' %}bg-success{% elif book.status == '在读' %}bg-primary{% elif book.status == '想读' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {{ book.status }}
                                 </span>
                             </td>
                             <td>

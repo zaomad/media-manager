@@ -23,9 +23,9 @@
         <div class="col-md-6">
             <select class="form-select" v-model="filterStatus">
                 <option value="">所有状态</option>
-                <option value="unwatched">未看</option>
-                <option value="watching">在看</option>
-                <option value="watched">已看</option>
+                <option value="未看">未看</option>
+                <option value="想看">想看</option>
+                <option value="已看">已看</option>
             </select>
         </div>
     </div>
@@ -152,9 +152,10 @@
                             </div>
                             {% endif %}
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="badge {% if movie.status == 'watched' %}bg-success{% elif movie.status == 'watching' %}bg-warning{% else %}bg-secondary{% endif %}">
-                                    {% if movie.status == 'watched' %}已看
-                                    {% elif movie.status == 'watching' %}在看
+                                <span class="badge {% if movie.status == 'watched' or movie.status == '看过' or movie.status == '已看' %}bg-success{% elif movie.status == 'watching' or movie.status == '在看' %}bg-warning{% elif movie.status == 'unwatched' or movie.status == '想看' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {% if movie.status == 'watched' or movie.status == '看过' or movie.status == '已看' %}已看
+                                    {% elif movie.status == 'watching' or movie.status == '在看' %}在看
+                                    {% elif movie.status == 'unwatched' or movie.status == '想看' %}想看
                                     {% else %}未看
                                     {% endif %}
                                 </span>
@@ -215,9 +216,10 @@
                                 <span>{{ movie.director }}</span>
                                 {% if movie.year %} · <span>{{ movie.year }}</span>{% endif %}
                                 {% if movie.genre %} · <span>{{ movie.genre }}</span>{% endif %}
-                                <span class="badge ms-2 {% if movie.status == 'watched' %}bg-success{% elif movie.status == 'watching' %}bg-warning{% else %}bg-secondary{% endif %}">
-                                    {% if movie.status == 'watched' %}已看
-                                    {% elif movie.status == 'watching' %}在看
+                                <span class="badge ms-2 {% if movie.status == 'watched' or movie.status == '看过' or movie.status == '已看' %}bg-success{% elif movie.status == 'watching' or movie.status == '在看' %}bg-warning{% elif movie.status == 'unwatched' or movie.status == '想看' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {% if movie.status == 'watched' or movie.status == '看过' or movie.status == '已看' %}已看
+                                    {% elif movie.status == 'watching' or movie.status == '在看' %}在看
+                                    {% elif movie.status == 'unwatched' or movie.status == '想看' %}想看
                                     {% else %}未看
                                     {% endif %}
                                 </span>
@@ -297,9 +299,10 @@
                             <td>{{ movie.year }}</td>
                             <td>{{ movie.genre }}</td>
                             <td>
-                                <span class="badge {% if movie.status == 'watched' %}bg-success{% elif movie.status == 'watching' %}bg-warning{% else %}bg-secondary{% endif %}">
-                                    {% if movie.status == 'watched' %}已看
-                                    {% elif movie.status == 'watching' %}在看
+                                <span class="badge {% if movie.status == 'watched' or movie.status == '看过' or movie.status == '已看' %}bg-success{% elif movie.status == 'watching' or movie.status == '在看' %}bg-warning{% elif movie.status == 'unwatched' or movie.status == '想看' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {% if movie.status == 'watched' or movie.status == '看过' or movie.status == '已看' %}已看
+                                    {% elif movie.status == 'watching' or movie.status == '在看' %}在看
+                                    {% elif movie.status == 'unwatched' or movie.status == '想看' %}想看
                                     {% else %}未看
                                     {% endif %}
                                 </span>
@@ -480,7 +483,25 @@
                     const itemStatus = item.dataset.status;
                     
                     const matchesSearch = title.includes(query) || director.includes(query);
-                    const matchesStatus = !status || itemStatus === status;
+                    
+                    // 状态匹配逻辑，同时处理中文和英文状态值
+                    let matchesStatus = !status; // 如果没有选择状态，则默认匹配
+                    
+                    if (!matchesStatus) {
+                        // 处理中文状态
+                        if (status === '已看') {
+                            matchesStatus = itemStatus === '已看' || itemStatus === '看过' || itemStatus === 'watched';
+                        } else if (status === '在看') {
+                            matchesStatus = itemStatus === '在看' || itemStatus === 'watching';
+                        } else if (status === '想看') {
+                            matchesStatus = itemStatus === '想看' || itemStatus === 'wanting' || itemStatus === 'watching';
+                        } else if (status === '未看') {
+                            matchesStatus = itemStatus === '未看' || itemStatus === 'unwatched';
+                        } else {
+                            // 处理英文状态（兼容性）
+                            matchesStatus = itemStatus === status;
+                        }
+                    }
                     
                     if (matchesSearch && matchesStatus) {
                         item.style.display = '';
@@ -907,7 +928,23 @@
                     cast.includes(searchQuery);
                 
                 // 状态匹配
-                const matchesStatus = !statusFilter || status === statusFilter;
+                let matchesStatus = !statusFilter;
+                
+                if (!matchesStatus) {
+                    // 处理中文状态
+                    if (statusFilter === '已看') {
+                        matchesStatus = status === '已看' || status === '看过' || status === 'watched';
+                    } else if (statusFilter === '在看') {
+                        matchesStatus = status === '在看' || status === 'watching';
+                    } else if (statusFilter === '想看') {
+                        matchesStatus = status === '想看' || status === 'wanting' || status === 'watching';
+                    } else if (statusFilter === '未看') {
+                        matchesStatus = status === '未看' || status === 'unwatched';
+                    } else {
+                        // 处理英文状态（兼容性）
+                        matchesStatus = status === statusFilter;
+                    }
+                }
                 
                 // 分类匹配 (必须匹配所有选定的分类标签)
                 let matchesGenre = selectedGenres.length === 0; // 如果没有选中分类，则默认匹配

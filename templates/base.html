@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}书影音管理{% endblock %}</title>
+    <title>
+    {% if title %}{{ title }} - 书影音管理{% else %}书影音管理系统{% endif %}
+</title>
     <!-- 引入Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,6 +44,11 @@
                             </a>
                         </li>
                         {% endfor %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == '/douban/search' %}active{% endif %}" href="{{ url_for('douban_search') }}">
+                                <i class="bi bi-search me-1"></i> 豆瓣搜索
+                            </a>
+                        </li>
                     </ul>
                     <ul class="navbar-nav ms-auto">
                         <!-- 模式切换按钮 -->

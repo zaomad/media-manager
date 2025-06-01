@@ -44,7 +44,7 @@
                                     <label for="status" class="form-label">状态</label>
                                     <select class="form-select" id="status" name="status">
                                         <option value="unlistened" {% if not music or music.status == 'unlistened' or not music.status %}selected{% endif %}>未听</option>
-                                        <option value="listening" {% if music and music.status == 'listening' %}selected{% endif %}>在听</option>
+                                        <option value="wanting" {% if music and (music.status == 'listening' or music.status == 'wanting') %}selected{% endif %}>想听</option>
                                         <option value="listened" {% if music and music.status == 'listened' %}selected{% endif %}>已听</option>
                                     </select>
                                 </div>

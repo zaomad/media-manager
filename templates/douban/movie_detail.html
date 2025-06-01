@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ movie.title }} - 豆瓣电影 - Media Manager{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">首页</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('douban_search') }}">豆瓣搜索</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ movie.title }}</li>
+        </ol>
+    </nav>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <!-- 封面图 -->
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <img src="{{ movie.cover_url }}" class="img-fluid rounded" alt="{{ movie.title }}">
+                </div>
+                
+                <!-- 电影信息 -->
+                <div class="col-md-9">
+                    <h1 class="mb-2">{{ movie.title }}</h1>
+                    
+                    {% if movie.original_title %}
+                    <h5 class="text-muted mb-3">{{ movie.original_title }}</h5>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        {% if movie.rating %}
+                        <span class="badge bg-warning text-dark me-2">
+                            <i class="bi bi-star-fill me-1"></i>{{ movie.rating }}
+                        </span>
+                        {% endif %}
+                        
+                        {% if movie.year %}
+                        <span class="badge bg-secondary me-2">{{ movie.year }}</span>
+                        {% endif %}
+                        
+                        {% if movie.tags %}
+                        {% for tag in movie.tags.split(',') %}
+                        <span class="badge bg-info text-dark me-1">{{ tag }}</span>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                    
+                    <table class="table table-sm">
+                        <tbody>
+                            {% if movie.director %}
+                            <tr>
+                                <th scope="row" width="100">导演</th>
+                                <td>{{ movie.director }}</td>
+                            </tr>
+                            {% endif %}
+                            
+                            {% if movie.actor %}
+                            <tr>
+                                <th scope="row">主演</th>
+                                <td>{{ movie.actor }}</td>
+                            </tr>
+                            {% endif %}
+                            
+                            {% if movie.country %}
+                            <tr>
+                                <th scope="row">国家/地区</th>
+                                <td>{{ movie.country }}</td>
+                            </tr>
+                            {% endif %}
+                            
+                            {% if movie.language %}
+                            <tr>
+                                <th scope="row">语言</th>
+                                <td>{{ movie.language }}</td>
+                            </tr>
+                            {% endif %}
+                            
+                            {% if movie.duration %}
+                            <tr>
+                                <th scope="row">片长</th>
+                                <td>{{ movie.duration }}</td>
+                            </tr>
+                            {% endif %}
+                            
+                            {% if movie.imdb %}
+                            <tr>
+                                <th scope="row">IMDb</th>
+                                <td>{{ movie.imdb }}</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 简介 -->
+    {% if movie.description %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">简介</h5>
+        </div>
+        <div class="card-body">
+            <p class="card-text">{{ movie.description | nl2br }}</p>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- 导入表单 -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">导入到我的媒体库</h5>
+        </div>
+        <div class="card-body">
+            <form action="/douban/movie/{{ movie.id }}/import" method="post">
+                <div class="mb-3">
+                    <label for="status" class="form-label">状态</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="未看">未看</option>
+                        <option value="想看">想看</option>
+                        <option value="已看">已看</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="rating" class="form-label">我的评分 (0-5分)</label>
+                    <input type="number" class="form-control" id="rating" name="rating" value="0" min="0" max="5" step="0.1">
+                    <div class="form-text">请输入0-5之间的数值，精确到小数点后一位</div>
+                    <div class="star-rating" id="starRating">
+                        <!-- 星级评分将由JavaScript动态生成 -->
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="notes" class="form-label">笔记</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="添加你的观影笔记..."></textarea>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i> 导入电影
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 评分输入框
+    const ratingInput = document.getElementById('rating');
+    const starRating = document.getElementById('starRating');
+    
+    // 根据评分更新星级显示
+    function updateStars(rating) {
+        // 清空现有星星
+        starRating.innerHTML = '';
+        
+        // 添加星星 - 5分制
+        for (let i = 0; i < 5; i++) {
+            const starValue = i; // 每颗星代表1分
+            
+            if (rating >= starValue + 1) {
+                // 满星
+                starRating.innerHTML += '<i class="bi bi-star-fill" style="color: #ffc107; font-size: 24px; margin-right: 5px;"></i>';
+            } else if (rating >= starValue + 0.5) {
+                // 半星
+                starRating.innerHTML += '<i class="bi bi-star-half" style="color: #ffc107; font-size: 24px; margin-right: 5px;"></i>';
+            } else {
+                // 空星
+                starRating.innerHTML += '<i class="bi bi-star" style="color: #ccc; font-size: 24px; margin-right: 5px;"></i>';
+            }
+        }
+    }
+    
+    // 初始化星级显示
+    updateStars(parseFloat(ratingInput.value) || 0);
+    
+    // 监听评分输入变化
+    ratingInput.addEventListener('input', function() {
+        // 限制输入范围和精度
+        let value = parseFloat(this.value);
+        if (isNaN(value)) value = 0;
+        if (value < 0) value = 0;
+        if (value > 5) value = 5;
+        
+        // 四舍五入到小数点后一位
+        value = Math.round(value * 10) / 10;
+        this.value = value;
+        
+        // 更新星级显示
+        updateStars(value);
+    });
+
+    // 表单提交前验证
+    document.querySelector('form').addEventListener('submit', function(event) {
+        // 获取movie.id
+        const movieId = '{{ movie.id }}';
+        
+        // 检查movie.id是否为空
+        if (!movieId || movieId.trim() === '') {
+            event.preventDefault();
+            alert('无法导入：电影ID无效');
+            return false;
+        }
+        
+        // 修改表单action，确保没有双斜杠
+        this.action = '/douban/movie/' + movieId + '/import';
+    });
+</script>
+{% endblock %} 
