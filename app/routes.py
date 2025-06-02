@@ -46,9 +46,9 @@ def inject_format_date():
 # 页面路由
 @app.route('/')
 def index():
-    recent_books = get_all_books()[:3]
-    recent_movies = get_all_movies()[:3]
-    recent_music = get_all_music()[:3]
+    recent_books = sorted(get_all_books(), key=lambda x: x.get('created_at', ''), reverse=True)[:3]
+    recent_movies = sorted(get_all_movies(), key=lambda x: x.get('created_at', ''), reverse=True)[:3]
+    recent_music = sorted(get_all_music(), key=lambda x: x.get('created_at', ''), reverse=True)[:3]
     return render_template('index.html', 
                            recent_books=recent_books,
                            recent_movies=recent_movies,
@@ -269,6 +269,9 @@ def edit_book(book_id):
     
     # 在GET请求时，确保状态显示正确
     if request.method == 'GET' and book:
+        # 打印原始状态值，帮助调试
+        print(f"编辑书籍 - 原始状态值: {book.get('status')}")
+        
         # 处理状态显示
         if book.get('status') == 'unread':
             book['status'] = '未读'
@@ -277,15 +280,27 @@ def edit_book(book_id):
         elif book.get('status') == 'read':
             book['status'] = '读过'
         # 确保"想读"状态保持不变
-        elif book.get('status') != '想读':
+        elif book.get('status') != '想读' and book.get('status') != '在读' and book.get('status') != '读过' and book.get('status') != '未读':
             # 如果状态不是已知的中文状态，则默认设为"未读"
             book['status'] = '未读'
+        
+        # 打印处理后的状态值，帮助调试
+        print(f"编辑书籍 - 处理后状态值: {book.get('status')}")
     
     if request.method == 'POST':
         # 获取表单数据
         title = request.form.get('title')
         author = request.form.get('author')
         publish_date = request.form.get('year', '')
+        
+        # 获取状态值
+        status = request.form.get('status')
+        print(f"表单提交 - 状态值: {status}")
+        
+        # 如果状态不是有效的选项之一，则设为默认值"未读"
+        if status not in ['未读', '想读', '在读', '读过']:
+            status = '未读'
+            print(f"状态值无效，设为默认值: {status}")
         
         # 处理分类标签（包括复选框和自定义输入）
         genre_tags = request.form.getlist('genre_tags')
@@ -300,12 +315,6 @@ def edit_book(book_id):
         
         # 转换为逗号分隔的字符串
         tags = ', '.join(sorted(all_genres))
-        
-        # 获取状态值，直接使用表单中的值，不进行额外转换
-        status = request.form.get('status')
-        # 如果状态不是有效的选项之一，则设为默认值"未读"
-        if status not in ['未读', '想读', '在读', '读过']:
-            status = '未读'
         
         # 处理评分
         rating_str = request.form.get('rating', '0')
@@ -449,6 +458,10 @@ def add_movie_route():
         rating_value = request.form.get('rating', '')
         try:
             rating = float(rating_value)
+            # 确保评分在0-5之间
+            rating = max(0, min(5, rating))
+            # 保留一位小数
+            rating = round(rating * 10) / 10
         except (ValueError, TypeError):
             rating = 0.0
             
@@ -464,6 +477,9 @@ def add_movie_route():
             'poster_url': request.form.get('poster_url', ''),
             'tags': request.form.get('tags', '')
         }
+        
+        # 记录评分值，帮助调试
+        logger.info(f"添加电影 - 评分值: {rating}")
         
         # 处理海报上传
         if 'poster' in request.files and request.files['poster'].filename:
@@ -491,13 +507,46 @@ def add_movie_route():
 @app.route('/movies/edit/<string:movie_id>', methods=['GET', 'POST'])
 def edit_movie_route(movie_id):
     movie = get_movie(movie_id)
+    
+    # 在GET请求时，确保状态显示正确
+    if request.method == 'GET' and movie:
+        # 打印原始状态值，帮助调试
+        logger.info(f"编辑电影 - 原始状态值: {movie.get('status')}")
+        
+        # 将英文状态值映射到中文状态值
+        if movie.get('status') == 'watched':
+            movie['status'] = '已看'
+        elif movie.get('status') == 'watching':
+            movie['status'] = '想看'
+        elif movie.get('status') == 'wanting':
+            movie['status'] = '想看'
+        elif movie.get('status') == 'unwatched':
+            movie['status'] = '未看'
+        # 确保中文状态保持不变
+        elif movie.get('status') != '已看' and movie.get('status') != '想看' and movie.get('status') != '未看':
+            # 如果状态不是已知的中文状态，则默认设为"未看"
+            logger.info(f"编辑电影 - 状态值不是已知的中文状态，设为未看: {movie.get('status')}")
+            movie['status'] = '未看'
+        
+        # 打印处理后的状态值，帮助调试
+        logger.info(f"编辑电影 - 处理后状态值: {movie.get('status')}")
+        
+        # 打印评分值，帮助调试
+        logger.info(f"编辑电影 - 评分值: {movie.get('rating')}")
+    
     if request.method == 'POST' and movie:
         # 获取评分值
         rating_value = request.form.get('rating', '')
         try:
             rating = float(rating_value)
+            # 确保评分在0-5之间
+            rating = max(0, min(5, rating))
+            # 保留一位小数
+            rating = round(rating * 10) / 10
+            logger.info(f"编辑电影表单提交 - 评分值: {rating}")
         except (ValueError, TypeError):
             rating = 0.0
+            logger.warning(f"编辑电影表单提交 - 评分转换失败，使用默认值0: {rating_value}")
             
         # 准备更新数据
         updated_movie = movie.copy()
@@ -513,6 +562,9 @@ def edit_movie_route(movie_id):
             'tags': request.form.get('tags', ''),
             'updated_at': datetime.now().isoformat()
         })
+        
+        # 记录状态值，帮助调试
+        logger.info(f"电影编辑表单提交 - 状态值: {updated_movie.get('status')}")
         
         # 处理海报上传
         if 'poster' in request.files and request.files['poster'].filename:
@@ -571,9 +623,7 @@ def music():
         # 将英文状态值映射到中文状态值
         if music.get('status') == 'listened':
             music['status'] = '已听'
-        elif music.get('status') == 'listening':
-            music['status'] = '想听'
-        elif music.get('status') == 'wanting':
+        elif music.get('status') == 'listening' or music.get('status') == 'wanting':
             music['status'] = '想听'
         elif music.get('status') == 'unlistened':
             music['status'] = '未听'
@@ -620,9 +670,7 @@ def music_detail(music_id):
     # 将英文状态值映射到中文状态值
     if music.get('status') == 'listened':
         music['status'] = '已听'
-    elif music.get('status') == 'listening':
-        music['status'] = '想听'
-    elif music.get('status') == 'wanting':
+    elif music.get('status') == 'listening' or music.get('status') == 'wanting':
         music['status'] = '想听'
     elif music.get('status') == 'unlistened':
         music['status'] = '未听'
@@ -644,6 +692,10 @@ def add_music_route():
         rating_value = request.form.get('rating', '')
         try:
             rating = float(rating_value)
+            # 确保评分在0-5之间
+            rating = max(0, min(5, rating))
+            # 保留一位小数
+            rating = round(rating * 10) / 10
         except (ValueError, TypeError):
             rating = 0.0
             
@@ -659,6 +711,9 @@ def add_music_route():
             'cover_url': request.form.get('cover_url', ''),
             'tags': request.form.get('tags', '')
         }
+        
+        # 记录评分值，帮助调试
+        logger.info(f"添加音乐 - 评分值: {rating}")
         
         # 处理封面上传
         if 'cover' in request.files and request.files['cover'].filename:
@@ -686,13 +741,46 @@ def add_music_route():
 @app.route('/music/edit/<string:music_id>', methods=['GET', 'POST'])
 def edit_music_route(music_id):
     music_item = get_music(music_id)
+    
+    # 在GET请求时，确保状态显示正确
+    if request.method == 'GET' and music_item:
+        # 打印原始状态值，帮助调试
+        logger.info(f"编辑音乐 - 原始状态值: {music_item.get('status')}")
+        
+        # 将英文状态值映射到中文状态值
+        if music_item.get('status') == 'listened':
+            music_item['status'] = '已听'
+        elif music_item.get('status') == 'listening':
+            music_item['status'] = '想听'
+        elif music_item.get('status') == 'wanting':
+            music_item['status'] = '想听'
+        elif music_item.get('status') == 'unlistened':
+            music_item['status'] = '未听'
+        # 确保中文状态保持不变
+        elif music_item.get('status') != '已听' and music_item.get('status') != '想听' and music_item.get('status') != '未听':
+            # 如果状态不是已知的中文状态，则默认设为"未听"
+            logger.info(f"编辑音乐 - 状态值不是已知的中文状态，设为未听: {music_item.get('status')}")
+            music_item['status'] = '未听'
+        
+        # 打印处理后的状态值，帮助调试
+        logger.info(f"编辑音乐 - 处理后状态值: {music_item.get('status')}")
+        
+        # 打印评分值，帮助调试
+        logger.info(f"编辑音乐 - 评分值: {music_item.get('rating')}")
+    
     if request.method == 'POST' and music_item:
         # 获取评分值
         rating_value = request.form.get('rating', '')
         try:
             rating = float(rating_value)
+            # 确保评分在0-5之间
+            rating = max(0, min(5, rating))
+            # 保留一位小数
+            rating = round(rating * 10) / 10
+            logger.info(f"编辑音乐表单提交 - 评分值: {rating}")
         except (ValueError, TypeError):
             rating = 0.0
+            logger.warning(f"编辑音乐表单提交 - 评分转换失败，使用默认值0: {rating_value}")
             
         # 准备更新数据
         updated_music = music_item.copy()
@@ -708,6 +796,9 @@ def edit_music_route(music_id):
             'tags': request.form.get('tags', ''),
             'updated_at': datetime.now().isoformat()
         })
+        
+        # 记录状态值，帮助调试
+        logger.info(f"音乐编辑表单提交 - 状态值: {updated_music.get('status')}")
         
         # 处理封面上传
         if 'cover' in request.files and request.files['cover'].filename:
@@ -1358,16 +1449,27 @@ def import_douban_movie(movie_id):
     # 用户可以修改的字段
     status = request.form.get('status', '未看')
     logger.info(f"用户选择的状态: {status}")
+    
+    # 确保状态是有效的中文状态值
+    if status not in ['未看', '想看', '已看']:
+        status = '未看'
+        logger.warning(f"无效的状态值，使用默认值: {status}")
+    
     movie['status'] = status
     
     # 处理评分
-    rating = request.form.get('rating', '0')
+    rating_value = request.form.get('rating', '0')
     try:
-        movie['rating'] = float(rating)  # 直接使用表单中的评分
-        logger.info(f"用户评分: {movie['rating']}")
+        rating = float(rating_value)
+        # 确保评分在0-5之间
+        rating = max(0, min(5, rating))
+        # 保留一位小数
+        rating = round(rating * 10) / 10
+        movie['rating'] = rating
+        logger.info(f"用户评分(处理后): {movie['rating']}")
     except (ValueError, TypeError):
         movie['rating'] = 0.0
-        logger.warning(f"评分转换失败，使用默认值0: {rating}")
+        logger.warning(f"评分转换失败，使用默认值0: {rating_value}")
     
     movie['notes'] = request.form.get('notes', '')
     
@@ -1413,16 +1515,27 @@ def import_douban_music(music_id):
     # 用户可以修改的字段
     status = request.form.get('status', '未听')
     logger.info(f"用户选择的状态: {status}")
+    
+    # 确保状态是有效的中文状态值
+    if status not in ['未听', '想听', '已听']:
+        status = '未听'
+        logger.warning(f"无效的状态值，使用默认值: {status}")
+    
     music['status'] = status
     
     # 处理评分
-    rating = request.form.get('rating', '0')
+    rating_value = request.form.get('rating', '0')
     try:
-        music['rating'] = float(rating)  # 直接使用表单中的评分
-        logger.info(f"用户评分: {music['rating']}")
+        rating = float(rating_value)
+        # 确保评分在0-5之间
+        rating = max(0, min(5, rating))
+        # 保留一位小数
+        rating = round(rating * 10) / 10
+        music['rating'] = rating
+        logger.info(f"用户评分(处理后): {music['rating']}")
     except (ValueError, TypeError):
         music['rating'] = 0.0
-        logger.warning(f"评分转换失败，使用默认值0: {rating}")
+        logger.warning(f"评分转换失败，使用默认值0: {rating_value}")
     
     music['notes'] = request.form.get('notes', '')
     

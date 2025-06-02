@@ -143,8 +143,11 @@ def update_book(book_id, book_data):
         if 'status' in book_data:
             # 打印状态值，帮助调试
             logger.info(f"保存书籍状态: {book_data['status']}")
-            # 保持中文状态值不变，不再转换为英文
-            pass
+            # 确保状态值是有效的中文状态
+            if book_data['status'] not in ['未读', '想读', '在读', '读过']:
+                # 如果不是有效的中文状态，则设为默认值"未读"
+                logger.warning(f"无效的状态值: {book_data['status']}，设为默认值: 未读")
+                book_data['status'] = '未读'
         
         if 'myRating' in book_data and 'rating' not in book_data:
             book_data['rating'] = book_data['myRating']
@@ -233,12 +236,26 @@ def add_movie(movie_data):
         movie_data['updated_at'] = datetime.now().isoformat()
         
         # 处理标签
-        if 'tags' in movie_data and isinstance(movie_data['tags'], str):
-            # 如果tags是字符串，确保它是逗号分隔的
+        if 'tags' in movie_data and isinstance(movie_data['tags'], list):
+            movie_data['tags'] = ','.join([tag.strip() for tag in movie_data['tags'] if tag.strip()])
+        elif 'tags' in movie_data and isinstance(movie_data['tags'], str):
             tags = movie_data['tags'].split(',') if movie_data['tags'] else []
             movie_data['tags'] = ','.join([tag.strip() for tag in tags if tag.strip()])
-        elif 'tags' in movie_data and isinstance(movie_data['tags'], list):
-            movie_data['tags'] = ','.join(movie_data['tags'])
+            
+        # 处理导演字段，确保使用逗号分隔且没有空格
+        if 'director' in movie_data and isinstance(movie_data['director'], str):
+            directors = movie_data['director'].split(',') if movie_data['director'] else []
+            movie_data['director'] = ','.join([d.strip() for d in directors if d.strip()])
+            
+        # 处理演员字段，确保使用逗号分隔且没有空格
+        if 'cast' in movie_data and isinstance(movie_data['cast'], str):
+            actors = movie_data['cast'].split(',') if movie_data['cast'] else []
+            movie_data['cast'] = ','.join([a.strip() for a in actors if a.strip()])
+            
+        # 处理类型字段，确保使用逗号分隔且没有空格
+        if 'genre' in movie_data and isinstance(movie_data['genre'], str):
+            genres = movie_data['genre'].split(',') if movie_data['genre'] else []
+            movie_data['genre'] = ','.join([g.strip() for g in genres if g.strip()])
         
         # 记录状态值，帮助调试
         if 'status' in movie_data:
@@ -248,10 +265,8 @@ def add_movie(movie_data):
             movie_data['status'] = '未看'  # 设置默认状态
         
         # 处理中文状态值
-        if movie_data.get('status') == '看过':
+        if movie_data.get('status') == '已看':
             movie_data['status'] = 'watched'
-        elif movie_data.get('status') == '在看':
-            movie_data['status'] = 'watching'
         elif movie_data.get('status') == '想看':
             movie_data['status'] = 'wanting'
         elif movie_data.get('status') == '未看':
@@ -261,9 +276,20 @@ def add_movie(movie_data):
             logger.info(f"将未知电影状态 '{movie_data.get('status')}' 设置为 'unwatched'")
             movie_data['status'] = 'unwatched'
         
-        # 记录评分值，帮助调试
+        # 处理评分值
         if 'rating' in movie_data:
-            logger.info(f"电影评分值: {movie_data['rating']}")
+            try:
+                # 确保评分是浮点数
+                rating = float(movie_data['rating'])
+                # 确保评分在0-5之间
+                rating = max(0, min(5, rating))
+                # 保留一位小数
+                rating = round(rating * 10) / 10
+                movie_data['rating'] = rating
+                logger.info(f"电影评分值(处理后): {movie_data['rating']}")
+            except (ValueError, TypeError):
+                movie_data['rating'] = 0.0
+                logger.warning(f"评分转换失败，使用默认值0")
         
         # 移除不存在于数据库表中的字段
         valid_fields = ['id', 'title', 'director', 'cast', 'year', 'genre', 'status', 
@@ -297,7 +323,52 @@ def update_movie(movie_id, movie_data):
         
         # 处理标签
         if 'tags' in movie_data and isinstance(movie_data['tags'], list):
-            movie_data['tags'] = ','.join(movie_data['tags'])
+            movie_data['tags'] = ','.join([tag.strip() for tag in movie_data['tags'] if tag.strip()])
+        elif 'tags' in movie_data and isinstance(movie_data['tags'], str):
+            tags = movie_data['tags'].split(',') if movie_data['tags'] else []
+            movie_data['tags'] = ','.join([tag.strip() for tag in tags if tag.strip()])
+            
+        # 处理导演字段，确保使用逗号分隔且没有空格
+        if 'director' in movie_data and isinstance(movie_data['director'], str):
+            directors = movie_data['director'].split(',') if movie_data['director'] else []
+            movie_data['director'] = ','.join([d.strip() for d in directors if d.strip()])
+            
+        # 处理演员字段，确保使用逗号分隔且没有空格
+        if 'cast' in movie_data and isinstance(movie_data['cast'], str):
+            actors = movie_data['cast'].split(',') if movie_data['cast'] else []
+            movie_data['cast'] = ','.join([a.strip() for a in actors if a.strip()])
+            
+        # 处理类型字段，确保使用逗号分隔且没有空格
+        if 'genre' in movie_data and isinstance(movie_data['genre'], str):
+            genres = movie_data['genre'].split(',') if movie_data['genre'] else []
+            movie_data['genre'] = ','.join([g.strip() for g in genres if g.strip()])
+        
+        # 处理中文状态值
+        if movie_data.get('status') == '已看':
+            movie_data['status'] = 'watched'
+        elif movie_data.get('status') == '想看':
+            movie_data['status'] = 'wanting'
+        elif movie_data.get('status') == '未看':
+            movie_data['status'] = 'unwatched'
+        
+        # 处理评分值
+        if 'rating' in movie_data:
+            try:
+                # 确保评分是浮点数
+                rating = float(movie_data['rating'])
+                # 确保评分在0-5之间
+                rating = max(0, min(5, rating))
+                # 保留一位小数
+                rating = round(rating * 10) / 10
+                movie_data['rating'] = rating
+                logger.info(f"更新电影评分值(处理后): {movie_data['rating']}")
+            except (ValueError, TypeError):
+                movie_data['rating'] = 0.0
+                logger.warning(f"更新评分转换失败，使用默认值0")
+        
+        # 记录状态值，帮助调试
+        if 'status' in movie_data:
+            logger.info(f"更新电影状态值: {movie_data['status']}")
         
         return movie_dao.update(movie_id, movie_data)
     except Exception as e:
@@ -404,10 +475,8 @@ def add_music(music_data):
             music_data['status'] = '未听'  # 设置默认状态
         
         # 处理中文状态值
-        if music_data.get('status') == '听过':
+        if music_data.get('status') == '已听':
             music_data['status'] = 'listened'
-        elif music_data.get('status') == '在听':
-            music_data['status'] = 'listening'
         elif music_data.get('status') == '想听':
             music_data['status'] = 'wanting'
         elif music_data.get('status') == '未听':
@@ -417,9 +486,20 @@ def add_music(music_data):
             logger.info(f"将未知音乐状态 '{music_data.get('status')}' 设置为 'unlistened'")
             music_data['status'] = 'unlistened'
         
-        # 记录评分值，帮助调试
+        # 处理评分值
         if 'rating' in music_data:
-            logger.info(f"音乐评分值: {music_data['rating']}")
+            try:
+                # 确保评分是浮点数
+                rating = float(music_data['rating'])
+                # 确保评分在0-5之间
+                rating = max(0, min(5, rating))
+                # 保留一位小数
+                rating = round(rating * 10) / 10
+                music_data['rating'] = rating
+                logger.info(f"音乐评分值(处理后): {music_data['rating']}")
+            except (ValueError, TypeError):
+                music_data['rating'] = 0.0
+                logger.warning(f"评分转换失败，使用默认值0")
         
         # 移除不存在于数据库表中的字段
         valid_fields = ['id', 'title', 'artist', 'album', 'year', 'genre', 'status', 
@@ -458,6 +538,33 @@ def update_music(music_id, music_data):
         # 确保有title字段
         if 'album' in music_data and not music_data.get('title'):
             music_data['title'] = music_data['album']
+            
+        # 处理中文状态值
+        if music_data.get('status') == '已听':
+            music_data['status'] = 'listened'
+        elif music_data.get('status') == '想听':
+            music_data['status'] = 'wanting'
+        elif music_data.get('status') == '未听':
+            music_data['status'] = 'unlistened'
+        
+        # 处理评分值
+        if 'rating' in music_data:
+            try:
+                # 确保评分是浮点数
+                rating = float(music_data['rating'])
+                # 确保评分在0-5之间
+                rating = max(0, min(5, rating))
+                # 保留一位小数
+                rating = round(rating * 10) / 10
+                music_data['rating'] = rating
+                logger.info(f"更新音乐评分值(处理后): {music_data['rating']}")
+            except (ValueError, TypeError):
+                music_data['rating'] = 0.0
+                logger.warning(f"更新评分转换失败，使用默认值0")
+        
+        # 记录状态值，帮助调试
+        if 'status' in music_data:
+            logger.info(f"更新音乐状态值: {music_data['status']}")
         
         return music_dao.update(music_id, music_data)
     except Exception as e:

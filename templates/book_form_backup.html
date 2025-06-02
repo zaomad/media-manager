@@ -37,103 +37,88 @@
     }
     
     /* 分类下拉框样式 */
-    .dropdown-menu {
+    .genre-dropdown {
+        position: relative;
+    }
+    .genre-input-container {
+        position: relative;
+    }
+    .genre-input {
+        cursor: pointer;
+        padding-right: 40px;
+    }
+    .genre-search-icon {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        z-index: 5;
+    }
+    .genre-dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
         max-height: 400px;
         overflow-y: auto;
-        width: 100%;
-        padding: 15px;
+        background-color: white;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        z-index: 1000;
+        padding: 0.5rem;
+        display: none;
     }
-    
-    /* 标签样式 - 完全重写 */
-    #genreTagsContainer {
+    .genre-dropdown-menu.show {
+        display: block;
+    }
+    .genre-tags-container {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
-        max-height: 300px;
-        overflow-y: auto;
-        padding: 5px;
     }
-    
     .genre-tag-item {
-        margin: 0;
-        padding: 0;
+        margin-bottom: 5px;
     }
-    
-    .genre-tag-item .form-check {
-        margin: 0;
-        padding: 0;
-    }
-    
-    /* 完全隐藏复选框 */
-    .genre-tag-item .form-check-input {
+    .genre-checkbox {
         display: none !important;
+        opacity: 0;
+        position: absolute;
+        pointer-events: none;
     }
-    
-    /* 标签样式 */
-    .genre-tag-item .form-check-label {
-        display: block;
-        padding: 8px 16px;
-        background-color: #f5f5f5;
-        border: 1px solid #e0e0e0;
+    .genre-label {
+        display: inline-block;
+        padding: 5px 10px;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
         border-radius: 20px;
-        color: #333;
-        font-size: 14px;
         cursor: pointer;
         transition: all 0.2s;
-        white-space: nowrap;
-        text-align: center;
+        font-size: 0.9rem;
     }
-    
-    /* 选中状态 */
-    .genre-tag-item .form-check-input:checked + .form-check-label {
-        background-color: #5e72e4;
+    .genre-checkbox:checked + .genre-label {
+        background-color: #0d6efd;
         color: white;
-        border-color: #5e72e4;
+        border-color: #0d6efd;
     }
-    
-    /* 悬停效果 */
-    .genre-tag-item .form-check-label:hover {
+    .selected-genre-tag {
+        display: inline-flex;
+        align-items: center;
         background-color: #e9ecef;
+        border-radius: 16px;
+        padding: 2px 8px;
+        margin-right: 5px;
+        margin-bottom: 5px;
+        font-size: 0.85rem;
     }
-    
-    .genre-tag-item .form-check-input:checked + .form-check-label:hover {
-        background-color: #4a5acf;
-    }
-    
-    /* 搜索框样式 */
-    #genreSearchInput {
-        width: 100%;
-        padding: 8px 12px;
-        border: 1px solid #e0e0e0;
-        border-radius: 4px;
-        margin-bottom: 15px;
-        font-size: 14px;
-    }
-    
-    /* 下拉菜单样式 */
-    #genreDropdownMenu {
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        background-color: white;
-    }
-    
-    #genreSelector {
+    .selected-genre-tag .remove-genre {
+        margin-left: 5px;
         cursor: pointer;
-        background-color: #fff;
+        color: #6c757d;
     }
-    
-    #genreDropdownToggle {
-        cursor: pointer;
-    }
-    
-    #genreDropdownToggle .input-group-text {
-        cursor: pointer;
-    }
-    
-    /* 自定义样式，确保下拉菜单在任何情况下都能正确显示 */
-    .dropdown-menu.show {
-        display: block !important;
+    .selected-genre-tag .remove-genre:hover {
+        color: #dc3545;
     }
 </style>
 {% endblock %}
@@ -247,30 +232,30 @@
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">分类</label>
-                                    <div class="position-relative">
-                                        <div class="input-group" id="genreDropdownToggle">
-                                            <input type="text" class="form-control" id="genreSelector" placeholder="选择或搜索分类标签..." readonly>
-                                            <span class="input-group-text">
+                                    <div class="genre-dropdown">
+                                        <div class="genre-input-container">
+                                            <input type="text" class="form-control genre-input" id="genreSelector" placeholder="选择或搜索分类标签..." readonly>
+                                            <div class="genre-search-icon" id="genreDropdownBtn">
                                                 <i class="bi bi-tag-fill"></i>
-                                            </span>
+                                            </div>
                                         </div>
-                                        <div class="position-absolute start-0 w-100 mt-1 bg-white border rounded shadow p-3" id="genreDropdownMenu" style="display: none; z-index: 1000;">
+                                        <div class="genre-dropdown-menu" id="genreDropdownMenu">
                                             <div class="mb-2">
                                                 <input type="text" class="form-control" id="genreSearchInput" placeholder="搜索分类...">
                                             </div>
-                                            <div id="genreTagsContainer" class="mb-3" style="display: flex; flex-wrap: wrap; gap: 10px;">
-                                                {% for genre in genres %}
-                                                <div style="margin: 5px;">
-                                                    <label style="display: inline-block; padding: 8px 16px; background-color: #f5f5f5; border-radius: 20px; cursor: pointer; border: 1px solid #e0e0e0; margin: 0;">
-                                                        <input type="checkbox" name="genre_tags" value="{{ genre }}" 
-                                                               {% if book and book_genres and genre in book_genres %}checked{% endif %}
-                                                               style="display: none;" id="genre_{{ loop.index }}">
-                                                        <span>{{ genre }}</span>
-                                                    </label>
+                                            <div class="genre-tags-container" id="genreTagsContainer">
+                                                <div class="row row-cols-3 g-2 w-100">
+                                                    {% for genre in genres %}
+                                                    <div class="col genre-tag-item">
+                                                        <input class="genre-checkbox" type="checkbox" id="genre_{{ loop.index }}" 
+                                                               name="genre_tags" value="{{ genre }}" hidden
+                                                               {% if book and book_genres and genre in book_genres %}checked{% endif %}>
+                                                        <label class="genre-label w-100 text-center" for="genre_{{ loop.index }}">{{ genre }}</label>
+                                                    </div>
+                                                    {% endfor %}
                                                 </div>
-                                                {% endfor %}
                                             </div>
-                                            <div class="border-top pt-2">
+                                            <div class="mt-3 border-top pt-2">
                                                 <label for="custom_genre" class="form-label">添加自定义分类（用逗号分隔多个分类）</label>
                                                 <input type="text" class="form-control" id="custom_genre" name="custom_genre" placeholder="科幻, 悬疑, 冒险...">
                                             </div>
@@ -368,220 +353,111 @@
         const initialRating = parseFloat(ratingInput.value) || 0;
         updateStars(initialRating);
 
-        // 分类下拉框功能 - 使用纯JavaScript实现
+        // 分类下拉框功能
         const genreSelector = document.getElementById('genreSelector');
+        const genreDropdown = document.getElementById('genreDropdownMenu');
+        const genreDropdownBtn = document.getElementById('genreDropdownBtn');
         const genreSearchInput = document.getElementById('genreSearchInput');
-        const genreCheckboxes = document.querySelectorAll('input[name="genre_tags"]');
-        const dropdownToggle = document.getElementById('genreDropdownToggle');
-        const dropdownMenu = document.getElementById('genreDropdownMenu');
-        const customGenreInput = document.getElementById('custom_genre');
-        const bookForm = document.querySelector('form');
+        const genreCheckboxes = document.querySelectorAll('.genre-checkbox');
         
-        // 调试当前书籍状态
-        const statusSelect = document.getElementById('status');
-        console.log('初始化时的阅读状态:', statusSelect ? statusSelect.value : '未找到状态选择器');
-        
-        // 确保状态选择器正确设置
-        if (statusSelect) {
-            const bookStatus = "{{ book.status|default('未读') }}";
-            console.log('从服务器获取的状态:', bookStatus);
-            
-            // 设置状态选择器的值
-            for (let i = 0; i < statusSelect.options.length; i++) {
-                if (statusSelect.options[i].value === bookStatus) {
-                    statusSelect.options[i].selected = true;
-                    console.log('已设置状态为:', bookStatus);
-                    break;
-                }
-            }
-        }
-        
-        // 检查元素是否存在
-        if (!genreSelector || !genreSearchInput || !dropdownToggle || !dropdownMenu || !customGenreInput) {
-            console.error('分类选择器初始化失败：某些元素不存在', {
-                genreSelector: !!genreSelector,
-                genreSearchInput: !!genreSearchInput,
-                dropdownToggle: !!dropdownToggle,
-                dropdownMenu: !!dropdownMenu,
-                customGenreInput: !!customGenreInput
-            });
-            return;
-        }
-        
-        console.log('分类选择器元素已找到', {
-            genreCheckboxes: genreCheckboxes.length
-        });
-        
-        // 显示下拉菜单
+        // 显示下拉框
         function showDropdown() {
-            dropdownMenu.style.display = 'block';
-            genreSearchInput.focus();
-            console.log('显示下拉菜单');
+            genreDropdown.classList.add('show');
+            genreSearchInput.focus(); // 自动聚焦到搜索框
+            
+            // 点击外部关闭下拉框
+            document.addEventListener('click', handleOutsideClick);
         }
         
-        // 隐藏下拉菜单
+        // 隐藏下拉框
         function hideDropdown() {
-            dropdownMenu.style.display = 'none';
-            console.log('隐藏下拉菜单');
+            genreDropdown.classList.remove('show');
+            document.removeEventListener('click', handleOutsideClick);
         }
         
-        // 切换下拉菜单显示状态
-        function toggleDropdown() {
-            if (dropdownMenu.style.display === 'block') {
+        // 处理外部点击
+        function handleOutsideClick(e) {
+            const isDropdownClick = genreDropdown.contains(e.target) || 
+                                   genreSelector.contains(e.target) || 
+                                   genreDropdownBtn.contains(e.target);
+            
+            if (!isDropdownClick) {
                 hideDropdown();
-            } else {
-                showDropdown();
             }
         }
-        
-        // 点击输入框或标签图标时切换下拉菜单
-        dropdownToggle.addEventListener('click', function(e) {
-            console.log('点击了下拉菜单切换按钮');
-            toggleDropdown();
-            e.stopPropagation();
-        });
-        
-        // 点击页面其他区域关闭下拉菜单
-        document.addEventListener('click', function(e) {
-            if (!dropdownToggle.contains(e.target) && !dropdownMenu.contains(e.target)) {
-                hideDropdown();
-            }
-        });
         
         // 更新已选分类显示
         function updateSelectedGenres() {
             let selectedGenres = [];
             
+            // 收集已选分类
             genreCheckboxes.forEach(checkbox => {
                 if (checkbox.checked) {
                     selectedGenres.push(checkbox.value);
                 }
             });
             
-            console.log('更新已选分类', selectedGenres);
-            
+            // 更新选择器的值
             if (selectedGenres.length > 0) {
                 genreSelector.value = selectedGenres.join(', ');
+                genreSelector.title = selectedGenres.join(', '); // 添加工具提示
             } else {
                 genreSelector.value = '';
+                genreSelector.title = '';
             }
         }
         
         // 筛选分类标签
         function filterGenreTags(searchText) {
-            console.log('筛选分类标签', searchText);
             const genreItems = document.querySelectorAll('.genre-tag-item');
             const searchLower = searchText.toLowerCase();
             
-            let visibleCount = 0;
             genreItems.forEach(item => {
-                const label = item.querySelector('.form-check-label');
+                const label = item.querySelector('.genre-label');
                 const genreName = label.textContent.toLowerCase();
                 
                 if (genreName.includes(searchLower) || searchLower === '') {
                     item.style.display = '';
-                    visibleCount++;
                 } else {
                     item.style.display = 'none';
                 }
             });
-            
-            console.log('可见标签数量', visibleCount);
         }
+        
+        // 点击分类选择器打开下拉框
+        genreSelector.addEventListener('click', function() {
+            showDropdown();
+        });
+        
+        // 点击下拉按钮打开下拉框
+        genreDropdownBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (genreDropdown.classList.contains('show')) {
+                hideDropdown();
+            } else {
+                showDropdown();
+            }
+        });
         
         // 搜索输入框事件
         genreSearchInput.addEventListener('input', function() {
             filterGenreTags(this.value);
         });
         
+        // 防止点击自定义分类输入框时关闭下拉菜单
+        document.getElementById('custom_genre').addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+        
         // 分类复选框变化事件
         genreCheckboxes.forEach(checkbox => {
             checkbox.addEventListener('change', function() {
-                console.log('分类复选框变化', this.value, this.checked);
                 updateSelectedGenres();
             });
         });
-        
-        // 防止点击下拉菜单内部元素时关闭下拉菜单
-        dropdownMenu.addEventListener('click', function(e) {
-            console.log('点击了下拉菜单内部元素', e.target);
-            e.stopPropagation();
-        });
-        
-        // 防止点击自定义分类输入框时关闭下拉菜单
-        customGenreInput.addEventListener('click', function(e) {
-            console.log('点击了自定义分类输入框');
-            e.stopPropagation();
-        });
-        
-        // 防止在自定义分类输入框中按键时关闭下拉菜单
-        customGenreInput.addEventListener('keydown', function(e) {
-            e.stopPropagation();
-        });
-        
-        // 表单提交事件
-        if (bookForm) {
-            bookForm.addEventListener('submit', function(e) {
-                console.log('表单提交');
-                
-                // 确保所有选中的分类标签都被正确提交
-                let selectedGenres = [];
-                genreCheckboxes.forEach(checkbox => {
-                    if (checkbox.checked) {
-                        selectedGenres.push(checkbox.value);
-                    }
-                });
-                
-                console.log('提交的分类标签', selectedGenres);
-                
-                // 不需要阻止表单提交，因为复选框会自动提交
-            });
-        }
         
         // 初始化已选分类
         updateSelectedGenres();
-        
-        // 为标签添加样式变化
-        genreCheckboxes.forEach(checkbox => {
-            const label = checkbox.parentElement;
-            
-            // 初始化选中状态的样式
-            if (checkbox.checked) {
-                label.style.backgroundColor = '#5e72e4';
-                label.style.color = 'white';
-                label.style.borderColor = '#5e72e4';
-            }
-            
-            // 点击事件
-            checkbox.addEventListener('change', function() {
-                if (this.checked) {
-                    label.style.backgroundColor = '#5e72e4';
-                    label.style.color = 'white';
-                    label.style.borderColor = '#5e72e4';
-                } else {
-                    label.style.backgroundColor = '#f5f5f5';
-                    label.style.color = '#333';
-                    label.style.borderColor = '#e0e0e0';
-                }
-                updateSelectedGenres();
-            });
-            
-            // 鼠标悬停效果
-            label.addEventListener('mouseover', function() {
-                if (!checkbox.checked) {
-                    this.style.backgroundColor = '#e9ecef';
-                }
-            });
-            
-            label.addEventListener('mouseout', function() {
-                if (!checkbox.checked) {
-                    this.style.backgroundColor = '#f5f5f5';
-                }
-            });
-        });
-        
-        // 调试信息
-        console.log('分类选择器初始化完成');
     });
 </script>
 {% endblock %} 

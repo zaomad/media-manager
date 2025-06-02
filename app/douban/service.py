@@ -86,10 +86,27 @@ class DoubanService:
             rating = round(float(movie['rating']) / 2, 1)  # 转换为5分制
         
         # 将豆瓣电影数据转换为应用程序所需的格式
-        directors = ", ".join(movie.get("director", []))
-        actors = ", ".join(movie.get("actor", []))
+        # 处理导演字段，确保使用逗号分隔且没有空格
+        directors = ""
+        if isinstance(movie.get("director"), list):
+            directors = ",".join([d.strip() for d in movie.get("director", []) if d.strip()])
+        else:
+            directors = movie.get("director", "").replace(", ", ",")
+            
+        # 处理演员字段，确保使用逗号分隔且没有空格
+        actors = ""
+        if isinstance(movie.get("actor"), list):
+            actors = ",".join([a.strip() for a in movie.get("actor", []) if a.strip()])
+        else:
+            actors = movie.get("actor", "").replace(", ", ",")
+            
+        # 处理标签字段，确保使用逗号分隔且没有空格
         tags = movie.get("genre", [])
-        tags_str = ", ".join(tags) if tags else ""
+        tags_str = ""
+        if isinstance(tags, list):
+            tags_str = ",".join([t.strip() for t in tags if t.strip()])
+        else:
+            tags_str = tags.replace(", ", ",") if tags else ""
         
         # 确保返回字段名与数据库表字段完全匹配
         return {
